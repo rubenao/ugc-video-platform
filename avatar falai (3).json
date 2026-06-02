@@ -1,0 +1,545 @@
+{
+  "name": "avatar falai",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "1493a820-03a1-41db-a2cf-a7edd137331d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "voice": {
+          "__rl": true,
+          "value": "gbTn1bmCvNgk0QEAVyfM",
+          "mode": "list",
+          "cachedResultName": "Enrique M. Nieto - Credible and Rich"
+        },
+        "text": "={{ $('Edit Fields').item.json.guion }}",
+        "additionalOptions": {},
+        "requestOptions": {}
+      },
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        0
+      ],
+      "id": "dd453f49-702e-4d6a-a30b-41360fa3bc97",
+      "name": "Convert text to speech",
+      "credentials": {
+        "elevenLabsApi": {
+          "id": "NsihmTFedyRHRAZ6",
+          "name": "ElevenLabs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "caada752-f3cf-4a2e-bea3-190cdf267c5b",
+              "name": "guion",
+              "value": "Si estás perdiendo ventas B2B no es por precio, es por esto: te doy 4 tips rápidos para cerrar más. ",
+              "type": "string"
+            },
+            {
+              "id": "aa0ca5ec-b596-4f15-8aee-a4546d0e499f",
+              "name": "tema",
+              "value": "ventas b2b",
+              "type": "string"
+            },
+            {
+              "id": "cea0ede7-b867-430b-9341-1173790506af",
+              "name": "id_avatar",
+              "value": "1U6LDCWIPnhesb7HnUM3CzCJ3i2NNB9RK",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1296,
+        0
+      ],
+      "id": "ad93879a-84d8-4434-b75d-2b52c78150e0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/veed/fabric-1.0",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key b8a9fc78-8b14-4613-89e8-eeb9f1ab366b:9d284571e4d32a7f10525d919c1b3637"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "=https://drive.google.com/uc?id=1U6LDCWIPnhesb7HnUM3CzCJ3i2NNB9RK&export=download"
+            },
+            {
+              "name": "audio_url",
+              "value": "={{ $('Upload file').item.json.webContentLink }}"
+            },
+            {
+              "name": "resolution",
+              "value": "480p"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2528,
+        0
+      ],
+      "id": "b2aa3e64-459d-4683-90e3-20fd6f289953",
+      "name": "HTTP Request2",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2784,
+        0
+      ],
+      "id": "9e7e81a6-25dc-411d-aac5-3d719b095545",
+      "name": "Wait",
+      "webhookId": "50257285-e94b-4835-baec-1f385b5db817"
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/veed/fabric-1.0/requests/{{ $('HTTP Request2').item.json.request_id }}/status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key b8a9fc78-8b14-4613-89e8-eeb9f1ab366b:9d284571e4d32a7f10525d919c1b3637"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2992,
+        0
+      ],
+      "id": "bafb776d-5c58-476b-82d0-5c14bf851271",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d14aeee2-146d-464e-a352-90d8b5a87b44",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3200,
+        0
+      ],
+      "id": "e5105510-c5c7-439f-98d6-59079ef20b3c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/veed/fabric-1.0/requests/{{ $('HTTP Request2').item.json.request_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key b8a9fc78-8b14-4613-89e8-eeb9f1ab366b:9d284571e4d32a7f10525d919c1b3637"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3488,
+        -16
+      ],
+      "id": "d873461e-7dda-4929-a593-19a26e3ebb4d",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bd67efee-c2b5-4234-812e-f10faa7e0fc7",
+              "name": "nombre_archivo",
+              "value": "={{ $json.tema.trim().split(' ').slice(0, 3).join('_').toLowerCase() }}_{{ new Date().getTime() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1504,
+        0
+      ],
+      "id": "38e3e61d-de38-4a66-8be6-b28e5d777b96",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $json.nombre_archivo }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Yp8FSqBogu7EwgXx1wYLMtLXrk8FS6-D",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1712,
+        0
+      ],
+      "id": "9db9cbf0-cd9b-4d90-b3fe-5549977f41a3",
+      "name": "Create folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "DvUrr7FLteJDYqvx",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Edit Fields3').item.json.nombre_archivo }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2112,
+        0
+      ],
+      "id": "3d6e7846-3313-42ab-a8d6-01d59acfdc2b",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "DvUrr7FLteJDYqvx",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        0
+      ],
+      "id": "d40d281e-b9a7-4b28-a1dd-189ba7e07abf",
+      "name": "Share file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "DvUrr7FLteJDYqvx",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.video.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3696,
+        -16
+      ],
+      "id": "29cd75ed-d4db-4f17-b25a-f4eb7f6bb354",
+      "name": "Descargar video"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Edit Fields3').first().json.nombre_archivo }}.mp4",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3904,
+        -16
+      ],
+      "id": "7c191915-143d-4096-b6b2-402628866ec3",
+      "name": "Upload file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "DvUrr7FLteJDYqvx",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert text to speech": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Create folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create folder": {
+      "main": [
+        [
+          {
+            "node": "Convert text to speech",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "Descargar video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar video": {
+      "main": [
+        [
+          {
+            "node": "Upload file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "40a6d5f3-3571-48dd-9734-7fce235aec21",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0478306ce81375e787b49f787e0d149a86bdb36c38162e27401637ce893519dc"
+  },
+  "id": "0MVTKdH1QnoXrdwF",
+  "tags": [
+    {
+      "updatedAt": "2025-12-17T17:11:24.954Z",
+      "createdAt": "2025-12-17T17:11:24.954Z",
+      "id": "NpvqFU2VItEDhnvD",
+      "name": "curso n8n audiovisual"
+    }
+  ]
+}

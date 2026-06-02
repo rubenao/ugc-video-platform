@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UGC Video Creator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="brand-icon">🎬</div>
+      <div class="brand-text">
+        <span class="brand-name">UGC Creator</span>
+        <span class="brand-badge">AI-Powered</span>
+      </div>
+    </div>
+
+    <div class="sidebar-label">Etapas</div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="1" onclick="goToTab(1)">
+        <div class="nav-num" id="nav-num-1"><span>1</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">🧑‍🎨</span><span class="nav-title">Crear Avatar</span></div>
+          <span class="nav-sub" id="nav-sub-1">Genera tu persona con IA</span>
+        </div>
+      </button>
+      <button class="nav-item" data-tab="2" onclick="goToTab(2)">
+        <div class="nav-num" id="nav-num-2"><span>2</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">👤</span><span class="nav-title">Avatar UGC</span></div>
+          <span class="nav-sub" id="nav-sub-2">Persona + producto</span>
+        </div>
+      </button>
+      <button class="nav-item" data-tab="3" onclick="goToTab(3)">
+        <div class="nav-num" id="nav-num-3"><span>3</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">🎙️</span><span class="nav-title">Audio</span></div>
+          <span class="nav-sub" id="nav-sub-3">Voz del video</span>
+        </div>
+      </button>
+      <button class="nav-item" data-tab="4" onclick="goToTab(4)">
+        <div class="nav-num" id="nav-num-4"><span>4</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">🎬</span><span class="nav-title">Video</span></div>
+          <span class="nav-sub" id="nav-sub-4">Video UGC final</span>
+        </div>
+      </button>
+    </nav>
+
+    <!-- Progress summary -->
+    <div class="sidebar-section-label" id="progress-label" style="display:none">Progreso</div>
+    <div class="sidebar-progress">
+      <div class="progress-item" id="prog-created-avatar" style="display:none">
+        <img id="prog-created-img" src="" alt="">
+        <div class="progress-item-info">
+          <span class="progress-item-title">Avatar creado</span>
+          <span class="progress-item-sub">Listo ✓</span>
+        </div>
+      </div>
+      <div class="progress-item" id="prog-avatar" style="display:none">
+        <img id="prog-avatar-img" src="" alt="">
+        <div class="progress-item-info">
+          <span class="progress-item-title">Avatar UGC</span>
+          <span class="progress-item-sub">Listo ✓</span>
+        </div>
+      </div>
+      <div class="progress-item" id="prog-audio" style="display:none">
+        <div class="progress-item-icon">🎵</div>
+        <div class="progress-item-info">
+          <span class="progress-item-title">Audio</span>
+          <span class="progress-item-sub">Listo ✓</span>
+        </div>
+      </div>
+      <div class="progress-item" id="prog-video" style="display:none">
+        <div class="progress-item-icon">🎥</div>
+        <div class="progress-item-info">
+          <span class="progress-item-title">Video</span>
+          <span class="progress-item-sub">Listo ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-new-project" onclick="location.reload()">
+        <span>↺</span> Nuevo proyecto
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ===== CONTENT ===== -->
+  <main class="content">
+
+    <div class="topbar">
+      <button class="topbar-menu" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title" id="topbar-title">Crear Avatar</span>
+    </div>
+
+    <!-- ===== TAB 1: CREAR AVATAR ===== -->
+    <div id="step-1" class="tab-panel active">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">🧑‍🎨</div>
+        <div>
+          <h2>Crear Avatar Realista</h2>
+          <p>Define las características físicas y la IA generará una descripción detallada para crear tu persona</p>
+        </div>
+      </div>
+
+      <!-- Characteristics form -->
+      <div class="chars-grid">
+
+        <div class="char-group">
+          <div class="char-label">Género</div>
+          <div class="chip-group" id="cg-gender">
+            <button class="chip selected" data-value="woman">👩 Mujer</button>
+            <button class="chip" data-value="man">👨 Hombre</button>
+            <button class="chip" data-value="person">🧑 Neutro</button>
+          </div>
+        </div>
+
+        <div class="char-group">
+          <div class="char-label">Edad</div>
+          <div class="chip-group" id="cg-age">
+            <button class="chip selected" data-value="18-25 years old">18–25</button>
+            <button class="chip" data-value="26-35 years old">26–35</button>
+            <button class="chip" data-value="36-45 years old">36–45</button>
+            <button class="chip" data-value="46-60 years old">46–60</button>
+          </div>
+        </div>
+
+        <div class="char-group full-width">
+          <div class="char-label">Tono de piel</div>
+          <div class="skin-group" id="cg-skin">
+            <button class="skin-swatch selected" data-value="very fair skin" style="--c:#FDDBB4" title="Muy claro"></button>
+            <button class="skin-swatch" data-value="fair skin" style="--c:#EEB98B" title="Claro"></button>
+            <button class="skin-swatch" data-value="medium brown skin" style="--c:#C68642" title="Medio"></button>
+            <button class="skin-swatch" data-value="tan brown skin" style="--c:#8D5524" title="Bronceado"></button>
+            <button class="skin-swatch" data-value="dark brown skin" style="--c:#4A2912" title="Oscuro"></button>
+            <button class="skin-swatch" data-value="deep dark skin" style="--c:#2C1609" title="Muy oscuro"></button>
+          </div>
+        </div>
+
+        <div class="char-group">
+          <div class="char-label">Color de cabello</div>
+          <div class="chip-group" id="cg-hair-color">
+            <button class="chip" data-value="blonde hair">🟡 Rubio</button>
+            <button class="chip selected" data-value="brown hair">🟤 Castaño</button>
+            <button class="chip" data-value="black hair">⚫ Negro</button>
+            <button class="chip" data-value="red hair">🔴 Pelirrojo</button>
+            <button class="chip" data-value="gray hair">⚪ Gris</button>
+          </div>
+        </div>
+
+        <div class="char-group">
+          <div class="char-label">Largo de cabello</div>
+          <div class="chip-group" id="cg-hair-length">
+            <button class="chip" data-value="short hair">Corto</button>
+            <button class="chip selected" data-value="medium length hair">Medio</button>
+            <button class="chip" data-value="long hair">Largo</button>
+          </div>
+        </div>
+
+        <div class="char-group">
+          <div class="char-label">Estilo de cabello</div>
+          <div class="chip-group" id="cg-hair-style">
+            <button class="chip selected" data-value="straight hair">Liso</button>
+            <button class="chip" data-value="wavy hair">Ondulado</button>
+            <button class="chip" data-value="curly hair">Rizado</button>
+            <button class="chip" data-value="hair in a bun">Recogido</button>
+          </div>
+        </div>
+
+        <div class="char-group">
+          <div class="char-label">Expresión</div>
+          <div class="chip-group" id="cg-expression">
+            <button class="chip selected" data-value="warm smile">😊 Sonriente</button>
+            <button class="chip" data-value="natural relaxed expression">😐 Natural</button>
+            <button class="chip" data-value="enthusiastic excited expression">💪 Entusiasta</button>
+            <button class="chip" data-value="confident serious expression">😎 Segura</button>
+          </div>
+        </div>
+
+        <div class="char-group">
+          <div class="char-label">Vestimenta</div>
+          <div class="chip-group" id="cg-clothing">
+            <button class="chip selected" data-value="casual everyday clothing">👕 Casual</button>
+            <button class="chip" data-value="elegant smart outfit">👗 Elegante</button>
+            <button class="chip" data-value="sporty athletic wear">🏃 Deportivo</button>
+            <button class="chip" data-value="professional business attire">💼 Profesional</button>
+          </div>
+        </div>
+
+        <div class="char-group full-width">
+          <div class="char-label">Fondo</div>
+          <div class="chip-group" id="cg-background">
+            <button class="chip selected" data-value="clean neutral white background">⬜ Neutro</button>
+            <button class="chip" data-value="cozy home interior background">🏠 Hogar</button>
+            <button class="chip" data-value="outdoor natural park background">🌿 Exterior</button>
+            <button class="chip" data-value="modern office background">🏢 Oficina</button>
+            <button class="chip" data-value="professional photography studio background">📸 Estudio</button>
+          </div>
+        </div>
+
+      </div><!-- /chars-grid -->
+
+      <!-- Prompt section -->
+      <div class="prompt-section">
+        <div class="prompt-section-header">
+          <span class="prompt-section-title">Descripción generada por IA</span>
+          <button class="btn btn-sm" id="gen-prompt-btn" onclick="generatePrompt()">
+            <span>✨</span> Crear con IA
+          </button>
+        </div>
+        <textarea id="avatar-create-prompt" rows="4"
+          placeholder="Haz clic en 'Crear con IA' para generar automáticamente la descripción detallada de tu avatar, o escribe la tuya propia..."></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-create-btn" onclick="generateCreatedAvatar()">
+        <span>🧑‍🎨</span> Generar Avatar
+      </button>
+
+      <div id="created-avatar-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Avatar generado</h3>
+          <button class="btn btn-sm" onclick="generateCreatedAvatar()">↺ Regenerar</button>
+        </div>
+        <div class="avatar-img-wrap">
+          <img id="created-avatar-output" src="" alt="Avatar">
+        </div>
+        <div class="result-footer">
+          <button class="btn btn-ghost" onclick="downloadAsset(document.getElementById('created-avatar-output').src, 'avatar-creado.jpg')">⬇ Descargar</button>
+          <button class="btn btn-ghost" onclick="useCreatedAvatarForUGC()">Añadir producto (Tab 2)</button>
+          <button class="btn btn-primary" onclick="useCreatedAvatarDirect()">Usar como avatar final →</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-1 -->
+
+    <!-- ===== TAB 2: AVATAR UGC ===== -->
+    <div id="step-2" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">👤</div>
+        <div>
+          <h2>Avatar UGC</h2>
+          <p>Combina la foto de una persona con el producto para generar una imagen UGC con IA</p>
+        </div>
+      </div>
+
+      <!-- Banner when coming from Tab 1 -->
+      <div class="context-banner" id="created-avatar-banner" hidden>
+        <img id="created-avatar-banner-img" src="" alt="Avatar">
+        <div class="context-info">
+          <span class="context-label">Avatar creado en Tab 1</span>
+          <span class="context-sub">Se usará como base de la persona</span>
+        </div>
+        <button class="btn btn-sm" onclick="goToTab(1)">Cambiar</button>
+      </div>
+
+      <div class="upload-grid">
+        <label class="upload-area" id="person-area">
+          <input type="file" id="person-image" accept="image/*" hidden>
+          <div class="upload-placeholder" id="person-placeholder">
+            <div class="upload-icon">👤</div>
+            <div class="upload-text">
+              <strong>Foto de la persona</strong>
+              <span>JPG, PNG, WEBP · Max 10MB</span>
+            </div>
+          </div>
+          <img id="person-preview" src="" alt="" hidden>
+        </label>
+        <label class="upload-area" id="product-area">
+          <input type="file" id="product-image" accept="image/*" hidden>
+          <div class="upload-placeholder" id="product-placeholder">
+            <div class="upload-icon">📦</div>
+            <div class="upload-text">
+              <strong>Foto del producto</strong>
+              <span>Opcional · referencia visual</span>
+            </div>
+          </div>
+          <img id="product-preview" src="" alt="" hidden>
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>¿Qué agregar? — describe solo el cambio, no a la persona</label>
+        <textarea id="avatar-prompt" rows="3"
+          placeholder="Describe qué agregar a la foto sin re-describir a la persona. Ej: 'the same person is now holding a skincare bottle in their right hand, smiling, natural pose'"></textarea>
+        <div class="prompt-hints">
+          <button class="hint-btn" onclick="setPrompt('the same person is now holding a skincare bottle in their right hand with a warm smile, same lighting and background, UGC authentic style')">💆 Sostener producto</button>
+          <button class="hint-btn" onclick="setPrompt('the same person is now unboxing a product with an excited expression, opening a box in their hands, same person and setting')">📦 Unboxing</button>
+          <button class="hint-btn" onclick="setPrompt('the same person is now holding the product up toward the camera showing it clearly, enthusiastic expression, same background')">📣 Mostrando cámara</button>
+          <button class="hint-btn" onclick="setPrompt('the same person is now applying the product on their face with their fingertips, natural casual pose, same lighting')">✋ Aplicando</button>
+          <button class="hint-btn" onclick="setPrompt('the same person is now sitting casually holding the product on their lap, relaxed natural pose, lifestyle UGC style')">🛋️ Pose relajada</button>
+        </div>
+        <div class="prompt-tip">
+          💡 <strong>Tip:</strong> FLUX Kontext mantiene exactamente la misma persona de la foto. Describe solo lo que quieres agregar o cambiar.
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-ghost" onclick="useOriginalPhoto()">Usar foto original</button>
+        <button class="btn btn-primary" id="gen-avatar-btn" onclick="generateAvatar()">
+          <span>✨</span> Generar con IA
+        </button>
+      </div>
+
+      <div id="avatar-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Avatar generado</h3>
+          <button class="btn btn-sm" onclick="generateAvatar()">↺ Regenerar</button>
+        </div>
+        <div class="avatar-img-wrap">
+          <img id="avatar-output" src="" alt="Avatar">
+        </div>
+        <div class="result-footer">
+          <button class="btn btn-ghost" onclick="downloadAsset(document.getElementById('avatar-output').src, 'avatar-ugc.jpg')">⬇ Descargar</button>
+          <button class="btn btn-primary" onclick="confirmAvatar()">Usar este avatar · Ir a Audio →</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-2 -->
+
+    <!-- ===== TAB 3: AUDIO ===== -->
+    <div id="step-3" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">🎙️</div>
+        <div>
+          <h2>Crear Audio con IA</h2>
+          <p>Escribe el guion de tu video UGC y genera la voz con ElevenLabs</p>
+        </div>
+      </div>
+
+      <div class="context-banner" id="avatar-context-banner" hidden>
+        <img id="avatar-context-img" src="" alt="Avatar">
+        <div class="context-info">
+          <span class="context-label">Avatar seleccionado</span>
+          <span class="context-action" onclick="goToTab(2)">Cambiar →</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Guion del video</label>
+        <textarea id="script-text" rows="7"
+          placeholder="Escribe aquí el guion de tu video UGC...
+
+Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nunca pensé que algo así funcionara pero aquí estoy recomendándoselos. En serio, tienen que probarlo.'"></textarea>
+        <div class="char-info">
+          <span id="char-count">0</span> caracteres · duración estimada: <span id="duration-est">0</span>s
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Voz</label>
+        <div class="voice-row">
+          <select id="voice-select"><option value="">Cargando voces...</option></select>
+          <button class="btn btn-sm" id="preview-voice-btn" onclick="previewVoice()" disabled>▶ Preview</button>
+        </div>
+      </div>
+
+      <div class="sliders-row">
+        <div class="form-group">
+          <label>Estabilidad <span class="slider-val" id="stab-val">0.5</span></label>
+          <input type="range" id="stability" min="0" max="1" step="0.05" value="0.5"
+            oninput="document.getElementById('stab-val').textContent=this.value">
+        </div>
+        <div class="form-group">
+          <label>Similitud <span class="slider-val" id="sim-val">0.75</span></label>
+          <input type="range" id="similarity" min="0" max="1" step="0.05" value="0.75"
+            oninput="document.getElementById('sim-val').textContent=this.value">
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-audio-btn" onclick="generateAudio()">
+        <span>🎙️</span> Generar Audio
+      </button>
+
+      <div id="audio-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Audio generado</h3>
+          <button class="btn btn-sm" onclick="generateAudio()">↺ Regenerar</button>
+        </div>
+        <audio id="audio-player" controls class="audio-player"></audio>
+        <div class="result-footer">
+          <a id="dl-audio" class="btn btn-ghost" download>⬇ Descargar MP3</a>
+          <button class="btn btn-primary" onclick="confirmAudio()">Usar este audio · Ir a Video →</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-3 -->
+
+    <!-- ===== TAB 4: VIDEO ===== -->
+    <div id="step-4" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">🎬</div>
+        <div>
+          <h2>Generar Video UGC</h2>
+          <p>Combina el avatar y el audio para crear tu video con IA</p>
+        </div>
+      </div>
+
+      <div class="assets-preview">
+
+        <!-- Imagen / Avatar -->
+        <div class="asset-cell">
+          <div class="asset-label">Imagen del avatar</div>
+          <label class="asset-upload-wrap" id="tab4-img-label">
+            <input type="file" id="tab4-image" accept="image/*" hidden>
+            <img id="video-img-preview" src="" alt="Avatar" hidden>
+            <div class="asset-upload-empty" id="asset-img-empty">
+              <span class="asset-upload-icon">🖼️</span>
+              <span>Subir imagen</span>
+              <span class="asset-upload-hint">o arrastra aquí</span>
+            </div>
+          </label>
+          <div class="asset-cell-actions">
+            <button class="asset-change" onclick="document.getElementById('tab4-image').click()">📁 Subir</button>
+            <button class="asset-change" onclick="goToTab(2)">← Desde Tab 2</button>
+          </div>
+        </div>
+
+        <div class="asset-separator"><div class="asset-plus-circle">+</div></div>
+
+        <!-- Audio -->
+        <div class="asset-cell">
+          <div class="asset-label">Audio</div>
+          <label class="asset-upload-wrap" id="tab4-audio-label">
+            <input type="file" id="tab4-audio" accept="audio/*" hidden>
+            <div class="asset-audio-loaded" id="asset-audio-loaded" hidden>
+              <div class="asset-audio-icon-big">🎵</div>
+              <audio id="video-audio-preview" controls></audio>
+            </div>
+            <div class="asset-upload-empty" id="asset-audio-empty">
+              <span class="asset-upload-icon">🎙️</span>
+              <span>Subir audio</span>
+              <span class="asset-upload-hint">MP3, WAV, M4A</span>
+            </div>
+          </label>
+          <div class="asset-cell-actions">
+            <button class="asset-change" onclick="document.getElementById('tab4-audio').click()">📁 Subir</button>
+            <button class="asset-change" onclick="goToTab(3)">← Desde Tab 3</button>
+          </div>
+        </div>
+
+        <div class="asset-separator"><div class="asset-equals">=</div></div>
+
+        <!-- Resultado -->
+        <div class="asset-cell">
+          <div class="asset-label">Resultado</div>
+          <div class="asset-result-placeholder"><span>🎥</span><span>Video UGC</span></div>
+        </div>
+
+      </div>
+
+      <div class="model-badge">
+        <span class="model-badge-icon">🎞️</span>
+        <div>
+          <span class="model-badge-name">veed/fabric-1.0</span>
+          <span class="model-badge-desc">Talking head · Sincronización labial con audio</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-video-btn" onclick="generateVideo()">
+        <span>🎬</span> Generar Video UGC
+      </button>
+
+      <div id="video-progress" class="progress-card" hidden>
+        <div class="progress-spinner"></div>
+        <p id="progress-text">Iniciando generación de video...</p>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
+
+      <div id="video-result" class="result-card" hidden>
+        <div class="result-header"><h3>¡Video UGC listo! 🎉</h3></div>
+        <div class="video-wrap">
+          <video id="video-player" controls playsinline></video>
+        </div>
+        <div class="result-footer">
+          <button class="btn btn-ghost" onclick="location.reload()">↺ Nuevo proyecto</button>
+          <button id="dl-video" class="btn btn-primary" onclick="downloadAsset(state.video.videoUrl, 'ugc-video.mp4')">⬇ Descargar Video</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-4 -->
+
+  </main>
+</div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <p id="loading-text">Procesando...</p>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

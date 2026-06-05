@@ -51,6 +51,13 @@
           <span class="nav-sub" id="nav-sub-4">Video UGC final</span>
         </div>
       </button>
+      <button class="nav-item" data-tab="5" onclick="goToTab(5)">
+        <div class="nav-num" id="nav-num-5"><span>5</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">📸</span><span class="nav-title">Post Social</span></div>
+          <span class="nav-sub" id="nav-sub-5">Fotos + copy para redes</span>
+        </div>
+      </button>
     </nav>
 
     <!-- Progress summary -->
@@ -491,6 +498,150 @@ Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nun
       </div>
 
     </div><!-- /tab-4 -->
+
+    <!-- ===== TAB 5: SOCIAL POST CREATOR ===== -->
+    <div id="step-5" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">📸</div>
+        <div>
+          <h2>Fotos Profesionales & Posts</h2>
+          <p>Copia el estilo de una foto de referencia e integra tu producto con IA. Genera imagen + copy listo para publicar.</p>
+        </div>
+      </div>
+
+      <!-- Upload grid -->
+      <div class="upload-grid">
+        <label class="upload-area" id="ref-area">
+          <input type="file" id="ref-image" accept="image/*" hidden>
+          <div class="upload-placeholder" id="ref-placeholder">
+            <div class="upload-icon">🎨</div>
+            <div class="upload-text">
+              <strong>Foto de referencia</strong>
+              <span>Estilo a copiar</span>
+            </div>
+          </div>
+          <img id="ref-preview" src="" alt="" hidden>
+        </label>
+        <label class="upload-area" id="soc-product-area">
+          <input type="file" id="soc-product-image" accept="image/*" hidden>
+          <div class="upload-placeholder" id="soc-product-placeholder">
+            <div class="upload-icon">📦</div>
+            <div class="upload-text">
+              <strong>Foto del producto</strong>
+              <span>Tu producto a integrar</span>
+            </div>
+          </div>
+          <img id="soc-product-preview" src="" alt="" hidden>
+        </label>
+      </div>
+
+      <!-- Product info -->
+      <div class="form-group">
+        <label>Nombre del producto *</label>
+        <input type="text" id="soc-product-name" class="text-input" placeholder="Ej: Crema hidratante SPF 50">
+      </div>
+      <div class="form-group">
+        <label>Descripción breve <span class="label-optional">(opcional)</span></label>
+        <textarea id="soc-product-desc" rows="2" placeholder="Ej: Crema facial con protección solar, fórmula ligera, ideal para piel mixta..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>URL del producto <span class="label-optional">(opcional — extrae beneficios automáticamente)</span></label>
+        <input type="url" id="soc-product-url" class="text-input" placeholder="https://tutienda.com/producto">
+      </div>
+
+      <button class="btn btn-secondary btn-block" id="research-btn" onclick="researchProduct()">
+        <span>🔍</span> Investigar producto con IA
+      </button>
+
+      <!-- Research result -->
+      <div id="research-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Información del producto</h3>
+          <button class="btn btn-sm" onclick="researchProduct()">↺ Reinvestigar</button>
+        </div>
+        <textarea id="product-info-text" rows="8" class="ai-text-output"></textarea>
+        <p class="prompt-tip" style="margin-top:.75rem">💡 Puedes editar este texto antes de generar el post.</p>
+      </div>
+
+      <button class="btn btn-secondary btn-block" id="analyze-btn" onclick="analyzeReference()" style="margin-top:.5rem">
+        <span>🔎</span> Analizar imagen de referencia
+      </button>
+
+      <!-- Analysis result -->
+      <div id="analysis-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Análisis de la referencia</h3>
+          <button class="btn btn-sm" onclick="analyzeReference()">↺ Re-analizar</button>
+        </div>
+        <p class="prompt-tip" style="margin-bottom:.75rem">💡 Revisa y edita el análisis si lo necesitas. Se usará para guiar la generación.</p>
+        <textarea id="style-analysis-text" rows="14" class="ai-text-output"></textarea>
+      </div>
+
+      <!-- Platform -->
+      <div class="form-group" style="margin-top:1.5rem">
+        <label>Plataforma</label>
+        <div class="chip-group" id="cg-platform">
+          <button class="chip selected" data-value="Instagram">📸 Instagram</button>
+          <button class="chip" data-value="TikTok">🎵 TikTok</button>
+          <button class="chip" data-value="LinkedIn">💼 LinkedIn</button>
+          <button class="chip" data-value="Pinterest">📌 Pinterest</button>
+          <button class="chip" data-value="Twitter/X">🐦 X</button>
+        </div>
+      </div>
+
+      <!-- Aspect ratio -->
+      <div class="form-group">
+        <label>Formato de imagen</label>
+        <div class="chip-group" id="cg-aspect">
+          <button class="chip selected" data-value="1:1">◻ Cuadrado 1:1</button>
+          <button class="chip" data-value="9:16">📱 Vertical 9:16</button>
+          <button class="chip" data-value="4:5">📷 Feed 4:5</button>
+          <button class="chip" data-value="16:9">🖥 Horizontal 16:9</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-social-btn" onclick="generateSocialPost()">
+        <span>✨</span> Generar Foto + Copy del Post
+      </button>
+
+      <!-- Result -->
+      <div id="social-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Foto generada</h3>
+          <button class="btn btn-sm" onclick="generateSocialPost()">↺ Regenerar</button>
+        </div>
+        <div class="avatar-img-wrap">
+          <img id="social-output-img" src="" alt="Post generado">
+        </div>
+        <div class="result-footer" style="margin-top:.75rem">
+          <button class="btn btn-primary" onclick="downloadAsset(state.social.imageUrl, 'post-redes.jpg')">⬇ Descargar imagen</button>
+        </div>
+
+        <!-- Refinement -->
+        <div class="refinement-section">
+          <label class="refinement-label">¿Qué quieres cambiar en la próxima versión?</label>
+          <textarea id="refinement-notes" rows="3" class="ai-text-output"
+            placeholder="Ej: fondo más oscuro, producto más grande, añadir flores decorativas, luz más cálida, composición centrada..."></textarea>
+          <button class="btn btn-primary btn-block" style="margin-top:.75rem" onclick="generateSocialPost()">
+            <span>✨</span> Refinar imagen
+          </button>
+        </div>
+
+        <div style="margin-top:1.25rem">
+          <div class="result-header">
+            <h3>Copy del post</h3>
+            <button class="btn btn-sm" onclick="copySocialCaption()">📋 Copiar texto</button>
+          </div>
+          <textarea id="social-caption" rows="10" class="ai-text-output" style="margin-top:.75rem"></textarea>
+        </div>
+
+        <div class="result-footer">
+          <button class="btn btn-ghost" onclick="downloadAsset(state.social.imageUrl, 'post-redes.jpg')">⬇ Descargar imagen</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-5 -->
 
   </main>
 </div>

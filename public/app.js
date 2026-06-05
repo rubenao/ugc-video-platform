@@ -2,13 +2,14 @@
 // State
 // ============================================================
 const state = {
-  createdAvatarUrl: null,   // from Tab 1 (FLUX text-to-image)
+  createdAvatarUrl: null,
   avatar: { imageUrl: null },
   audio:  { audioUrl: null, audioFilename: null },
-  video:  { videoUrl: null }
+  video:  { videoUrl: null },
+  social: { imageUrl: null, styleAnalysis: '' }
 };
 
-const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video' };
+const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social' };
 
 // ============================================================
 // Init
@@ -17,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadVoices();
   initUpload('person-image', 'person-area', 'person-placeholder', 'person-preview');
   initUpload('product-image', 'product-area', 'product-placeholder', 'product-preview');
+  initUpload('ref-image', 'ref-area', 'ref-placeholder', 'ref-preview');
+  initUpload('soc-product-image', 'soc-product-area', 'soc-product-placeholder', 'soc-product-preview');
   initCharCounter();
   initChips();
   initTab4Uploads();
@@ -646,6 +649,199 @@ function toast(msg, type = 'error') {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============================================================
+// TAB 5: SOCIAL POST CREATOR
+// ============================================================
+async function analyzeReference() {
+  const refInput = document.getElementById('ref-image');
+  if (!refInput.files[0]) { toast('Sube primero la foto de referencia'); return; }
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Analizando...';
+  loading('Analizando imagen de referencia con IA...');
+
+  try {
+    const fd = new FormData();
+    fd.append('referenceImage', refInput.files[0]);
+
+    const res  = await fetch('/api/social/analyze', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al analizar la imagen');
+
+    state.social.styleAnalysis = data.styleAnalysis;
+    document.getElementById('style-analysis-text').value = data.styleAnalysis;
+
+    const card = document.getElementById('analysis-result');
+    card.hidden = false;
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    toast('Análisis completado', 'success');
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    hideLoading();
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔎</span> Analizar imagen de referencia';
+  }
+}
+
+async function researchProduct() {
+  const productName = document.getElementById('soc-product-name').value.trim();
+  if (!productName) { toast('Escribe el nombre del producto primero'); return; }
+
+  const btn = document.getElementById('research-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Investigando...';
+  loading('Investigando el producto con IA...');
+
+  try {
+    const res = await fetch('/api/social/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productName,
+        description: document.getElementById('soc-product-desc').value.trim(),
+        url: document.getElementById('soc-product-url').value.trim()
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al investigar producto');
+
+    document.getElementById('product-info-text').value = data.productInfo;
+    const result = document.getElementById('research-result');
+    result.hidden = false;
+    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    toast('Producto investigado exitosamente', 'success');
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    hideLoading();
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔍</span> Investigar producto con IA';
+  }
+}
+
+async function generateSocialPost() {
+  const refInput     = document.getElementById('ref-image');
+  const productInput = document.getElementById('soc-product-image');
+  const productName  = document.getElementById('soc-product-name').value.trim();
+
+  if (!refInput.files[0])     { toast('Sube una foto de referencia de estilo'); return; }
+  if (!productInput.files[0]) { toast('Sube una foto del producto'); return; }
+  if (!productName)            { toast('Escribe el nombre del producto'); return; }
+
+  const btn = document.getElementById('gen-social-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Generando...';
+
+  // Auto-run analysis if not done yet
+  const analysisText = document.getElementById('style-analysis-text').value.trim();
+  if (!analysisText) {
+    loading('Analizando imagen de referencia...');
+    try {
+      const fd = new FormData();
+      fd.append('referenceImage', refInput.files[0]);
+      const res  = await fetch('/api/social/analyze', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      state.social.styleAnalysis = data.styleAnalysis;
+      document.getElementById('style-analysis-text').value = data.styleAnalysis;
+      document.getElementById('analysis-result').hidden = false;
+    } catch (err) {
+      toast('Error al analizar referencia: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>✨</span> Generar Foto + Copy del Post';
+      hideLoading();
+      return;
+    }
+  }
+
+  // Auto-run research if not done yet
+  const productInfoText = document.getElementById('product-info-text').value.trim();
+  if (!productInfoText) {
+    loading('Investigando el producto...');
+    try {
+      const res  = await fetch('/api/social/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName,
+          description: document.getElementById('soc-product-desc').value.trim(),
+          url: document.getElementById('soc-product-url').value.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      document.getElementById('product-info-text').value = data.productInfo;
+      document.getElementById('research-result').hidden = false;
+    } catch (err) {
+      console.warn('Auto-research failed:', err.message);
+      // Non-blocking — continue without product info
+    }
+  }
+
+  loading('Generando foto profesional con Google Nano Banana 2...');
+
+  try {
+    const fd = new FormData();
+    fd.append('referenceImage',     refInput.files[0]);
+    fd.append('socialProductImage', productInput.files[0]);
+    fd.append('productName',        productName);
+    fd.append('productInfo',        document.getElementById('product-info-text').value.trim());
+    fd.append('platform',           getChipValue('cg-platform') || 'Instagram');
+    fd.append('aspectRatio',        getChipValue('cg-aspect')   || '1:1');
+    fd.append('refinementNotes',    document.getElementById('refinement-notes').value.trim());
+    // Use the editable textarea value so manual edits are respected
+    const analysisFromUI = document.getElementById('style-analysis-text').value.trim();
+    fd.append('cachedAnalysis', analysisFromUI || state.social.styleAnalysis);
+
+    const res  = await fetch('/api/social/generate', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error generando el post');
+
+    if (data.output) {
+      setSocialResult(data.output, data.caption, data.styleAnalysis);
+    } else if (data.prediction_id) {
+      loading('Esperando resultado de Replicate...');
+      await pollReplicate(data.prediction_id, url => setSocialResult(url, data.caption, data.styleAnalysis));
+    }
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    hideLoading();
+    btn.disabled = false;
+    btn.innerHTML = '<span>✨</span> Generar Foto + Copy del Post';
+  }
+}
+
+function setSocialResult(imageUrl, caption, styleAnalysis) {
+  state.social.imageUrl      = imageUrl;
+  if (styleAnalysis) {
+    state.social.styleAnalysis = styleAnalysis;
+    document.getElementById('style-analysis-text').value = styleAnalysis;
+  }
+
+  document.getElementById('social-output-img').src = imageUrl;
+  document.getElementById('social-caption').value  = caption || '';
+  document.getElementById('refinement-notes').value = '';
+
+  const result = document.getElementById('social-result');
+  result.hidden = false;
+  result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  markTabDone(5);
+  setNavSub(5, 'Post generado ✓');
+  toast('¡Post generado! 🎉', 'success');
+}
+
+function copySocialCaption() {
+  const text = document.getElementById('social-caption').value;
+  if (!text) { toast('No hay texto para copiar'); return; }
+  navigator.clipboard.writeText(text)
+    .then(() => toast('Texto copiado al portapapeles', 'success'))
+    .catch(() => toast('Error al copiar — selecciónalo manualmente'));
+}
 
 async function downloadAsset(url, filename) {
   if (!url) { toast('No hay archivo para descargar'); return; }

@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "PowerShell(New-Item *)",
-      "PowerShell(Get-ChildItem \"D:\\\\PROYECTOS CLAUDE CODE\\\\agente-drmiz-shopify\\\\Proyecto avatar\\\\\" -Recurse | Where-Object { !$_.PSIsContainer -and $_.FullName -notmatch 'node_modules' } | Select-Object FullName)"
+      "PowerShell(Get-ChildItem \"D:\\\\PROYECTOS CLAUDE CODE\\\\agente-drmiz-shopify\\\\Proyecto avatar\\\\\" -Recurse | Where-Object { !$_.PSIsContainer -and $_.FullName -notmatch 'node_modules' } | Select-Object FullName)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(node --check server.js)"
     ]
   }
 }

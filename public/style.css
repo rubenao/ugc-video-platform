@@ -1112,6 +1112,61 @@ input[type="range"] { width: 100%; accent-color: var(--primary); margin-top: 6px
   font-size: 13px;
   font-weight: 600;
   color: var(--primary-l);
-  margin-bottom: .5rem;
+  margin-bottom: .75rem;
 }
 
+.refine-group {
+  margin-bottom: .75rem;
+}
+.refine-cat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--muted2);
+  margin-bottom: .4rem;
+}
+.refine-group textarea {
+  margin-top: .25rem;
+  font-size: 13px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-color: var(--border2);
+}
+
+
+/* ===== TAB 6: Generar Imagen — grid de referencias ===== */
+.img-ref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.img-ref-thumb {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+}
+.img-ref-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.img-ref-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .65);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.img-ref-del:hover { background: #dc2626; }

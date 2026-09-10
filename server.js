@@ -759,6 +759,98 @@ app.post('/api/avatar/create', async (req, res) => {
 // The existing route reads personImage file — we add support for personImageUrl field
 // This is handled inside the existing route by checking req.body.personImageUrl
 
+// ---------- IMAGE GENERATION (ApiMart · GPT-Image-2) ----------
+// Genera imágenes a partir de un prompt y hasta 15 imágenes de referencia.
+app.post('/api/images/generate', upload.array('refImages', 15), async (req, res) => {
+  const files = req.files || [];
+  const {
+    prompt,
+    size = '1:1',
+    resolution = '2k',
+    n = 1
+  } = req.body;
+
+  if (!process.env.APIMART_API_KEY) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'APIMART_API_KEY no está configurada en el servidor' });
+  }
+  if (!prompt || !prompt.trim()) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'El prompt es requerido' });
+  }
+  if (files.length > 15) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'Máximo 15 imágenes de referencia' });
+  }
+
+  try {
+    const imageUrls = files.map(f => toDataURI(f.path));
+
+    const body = {
+      model: 'gpt-image-2',
+      prompt: prompt.trim(),
+      size,
+      resolution: String(resolution).toLowerCase(),
+      n: Math.min(Math.max(parseInt(n) || 1, 1), 4)
+    };
+    if (imageUrls.length) body.image_urls = imageUrls;
+
+    const r = await axios.post(
+      'https://api.apimart.ai/v1/images/generations',
+      body,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.APIMART_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        timeout: 60000
+      }
+    );
+
+    files.forEach(f => fs.unlink(f.path, () => {}));
+
+    const entry = Array.isArray(r.data?.data) ? r.data.data[0] : r.data?.data;
+    const taskId = entry?.task_id || entry?.id;
+    if (!taskId) {
+      return res.status(500).json({ error: 'ApiMart no devolvió un task_id', raw: r.data });
+    }
+    res.json({ task_id: taskId, status: entry.status || 'submitted' });
+  } catch (err) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    const detail = err.response?.data;
+    console.error('ApiMart image generate error:', detail || err.message);
+    res.status(500).json({ error: detail?.message || detail?.error || JSON.stringify(detail) || err.message });
+  }
+});
+
+app.get('/api/images/status/:id', async (req, res) => {
+  try {
+    const r = await axios.get(
+      `https://api.apimart.ai/v1/tasks/${req.params.id}`,
+      { headers: { Authorization: `Bearer ${process.env.APIMART_API_KEY}` } }
+    );
+    const d = r.data?.data || {};
+    const images = (d.result?.images || [])
+      .map(img => (Array.isArray(img.url) ? img.url[0] : img.url))
+      .filter(Boolean);
+
+    let status = d.status || 'processing';
+    if (status === 'completed' || status === 'success') status = 'succeeded';
+    if (status === 'failed' || status === 'error') status = 'failed';
+
+    res.json({
+      status,
+      progress: d.progress,
+      output: images,
+      error: d.error || d.fail_reason || null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n🎬 UGC Video Creator corriendo en http://localhost:${PORT}\n`);
 });

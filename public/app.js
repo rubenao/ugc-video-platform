@@ -6,10 +6,11 @@ const state = {
   avatar: { imageUrl: null },
   audio:  { audioUrl: null, audioFilename: null },
   video:  { videoUrl: null },
-  social: { imageUrl: null, styleAnalysis: '' }
+  social: { imageUrl: null, styleAnalysis: '' },
+  image:  { imageUrl: null, refFiles: [] }
 };
 
-const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social' };
+const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen' };
 
 // ============================================================
 // Init
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCharCounter();
   initChips();
   initTab4Uploads();
+  initImageRefUpload();
   goToTab(1);
 });
 
@@ -236,6 +238,49 @@ function setCreatedAvatarResult(imageUrl) {
   document.getElementById('created-avatar-output').src = imageUrl;
   document.getElementById('created-avatar-result').hidden = false;
   document.getElementById('created-avatar-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Refine the generated avatar by changing specific characteristics
+async function refineCreatedAvatar() {
+  const bgChip         = document.querySelector('#refine-bg .chip.selected');
+  const clothingChip   = document.querySelector('#refine-clothing .chip.selected');
+  const expressionChip = document.querySelector('#refine-expression .chip.selected');
+  const notes          = document.getElementById('avatar-refine-notes').value.trim();
+
+  if (!bgChip && !clothingChip && !expressionChip && !notes) {
+    toast('Selecciona algo que cambiar o escribe una nota');
+    return;
+  }
+
+  function syncMainChip(groupId, value) {
+    const group = document.getElementById(groupId);
+    const match = [...group.querySelectorAll('.chip')].find(c => c.dataset.value === value);
+    if (match) {
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      match.classList.add('selected');
+    }
+  }
+
+  if (bgChip)         syncMainChip('cg-background', bgChip.dataset.value);
+  if (clothingChip)   syncMainChip('cg-clothing',   clothingChip.dataset.value);
+  if (expressionChip) syncMainChip('cg-expression', expressionChip.dataset.value);
+
+  // Regenerate the AI prompt from updated characteristics
+  await generatePrompt();
+
+  // Append any free-text notes
+  if (notes) {
+    const el = document.getElementById('avatar-create-prompt');
+    el.value = el.value.trimEnd() + '. ' + notes;
+  }
+
+  // Regenerate the avatar image
+  await generateCreatedAvatar();
+
+  // Reset refinement panel state
+  document.querySelectorAll('#refine-bg .chip, #refine-clothing .chip, #refine-expression .chip')
+    .forEach(c => c.classList.remove('selected'));
+  document.getElementById('avatar-refine-notes').value = '';
 }
 
 // "Añadir producto" → lleva a Tab 2 con la imagen pre-cargada
@@ -841,6 +886,114 @@ function copySocialCaption() {
   navigator.clipboard.writeText(text)
     .then(() => toast('Texto copiado al portapapeles', 'success'))
     .catch(() => toast('Error al copiar — selecciónalo manualmente'));
+}
+
+// ============================================================
+// TAB 6: GENERAR IMAGEN (ApiMart GPT-Image-2)
+// ============================================================
+const MAX_REF_IMAGES = 15;
+
+function initImageRefUpload() {
+  const input = document.getElementById('img-ref-input');
+  const area  = document.getElementById('img-ref-area');
+
+  function addFiles(fileList) {
+    const incoming = [...fileList].filter(f => f.type.startsWith('image/'));
+    for (const f of incoming) {
+      if (state.image.refFiles.length >= MAX_REF_IMAGES) {
+        toast(`Máximo ${MAX_REF_IMAGES} imágenes`);
+        break;
+      }
+      state.image.refFiles.push(f);
+    }
+    renderImageRefGrid();
+  }
+
+  input.addEventListener('change', e => { addFiles(e.target.files); input.value = ''; });
+  area.addEventListener('dragover',  e => { e.preventDefault(); area.style.borderColor = 'var(--primary)'; });
+  area.addEventListener('dragleave', () => { area.style.borderColor = ''; });
+  area.addEventListener('drop', e => {
+    e.preventDefault(); area.style.borderColor = '';
+    if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+}
+
+function renderImageRefGrid() {
+  const grid = document.getElementById('img-ref-grid');
+  grid.innerHTML = '';
+  state.image.refFiles.forEach((file, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'img-ref-thumb';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'img-ref-del';
+    del.textContent = '×';
+    del.onclick = () => { state.image.refFiles.splice(idx, 1); renderImageRefGrid(); };
+    cell.appendChild(img);
+    cell.appendChild(del);
+    grid.appendChild(cell);
+  });
+  document.getElementById('img-ref-count').textContent = state.image.refFiles.length;
+}
+
+async function generateImages() {
+  const prompt = document.getElementById('img-gen-prompt').value.trim();
+  if (!prompt) { toast('Escribe la descripción de la imagen'); return; }
+
+  const btn = document.getElementById('gen-image-btn');
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Generando...';
+  document.getElementById('image-result').hidden = true;
+  document.getElementById('image-progress').hidden = false;
+  document.getElementById('image-progress-text').textContent = 'Enviando a GPT-Image-2...';
+
+  try {
+    const fd = new FormData();
+    fd.append('prompt', prompt);
+    fd.append('size', getChipValue('cg-img-size') || '1:1');
+    fd.append('resolution', getChipValue('cg-img-res') || '2k');
+    state.image.refFiles.forEach(f => fd.append('refImages', f));
+
+    const res  = await fetch('/api/images/generate', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error generando la imagen');
+
+    await pollImage(data.task_id);
+  } catch (err) {
+    toast(err.message);
+    document.getElementById('image-progress').hidden = true;
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<span>🖼️</span> Generar Imagen';
+  }
+}
+
+async function pollImage(taskId) {
+  const statusEl = document.getElementById('image-progress-text');
+  for (let i = 0; i < 100; i++) {
+    await sleep(3000);
+    const res  = await fetch(`/api/images/status/${taskId}`);
+    const data = await res.json();
+    if (typeof data.progress === 'number') statusEl.textContent = `Generando imagen... ${data.progress}%`;
+    if (data.status === 'succeeded' && data.output?.length) {
+      showImageResult(data.output[0]);
+      return;
+    }
+    if (data.status === 'failed') throw new Error(data.error || 'Falló la generación de la imagen');
+  }
+  throw new Error('Tiempo de espera agotado');
+}
+
+function showImageResult(imageUrl) {
+  state.image.imageUrl = imageUrl;
+  document.getElementById('image-progress').hidden = true;
+  document.getElementById('image-output').src = imageUrl;
+  const card = document.getElementById('image-result');
+  card.hidden = false;
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  markTabDone(6);
+  setNavSub(6, 'Imagen lista ✓');
+  toast('¡Imagen generada! 🎉', 'success');
 }
 
 async function downloadAsset(url, filename) {

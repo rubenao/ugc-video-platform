@@ -58,6 +58,13 @@
           <span class="nav-sub" id="nav-sub-5">Fotos + copy para redes</span>
         </div>
       </button>
+      <button class="nav-item" data-tab="6" onclick="goToTab(6)">
+        <div class="nav-num" id="nav-num-6"><span>6</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">🖼️</span><span class="nav-title">Generar Imagen</span></div>
+          <span class="nav-sub" id="nav-sub-6">GPT-Image-2 · hasta 15 referencias</span>
+        </div>
+      </button>
     </nav>
 
     <!-- Progress summary -->
@@ -241,6 +248,53 @@
         <div class="avatar-img-wrap">
           <img id="created-avatar-output" src="" alt="Avatar">
         </div>
+
+        <!-- Refinement panel -->
+        <div class="refinement-section">
+          <span class="refinement-label">✏️ ¿Qué quieres cambiar?</span>
+
+          <div class="refine-group">
+            <div class="refine-cat-label">Fondo</div>
+            <div class="chip-group" id="refine-bg">
+              <button class="chip" data-value="clean neutral white background">⬜ Neutro</button>
+              <button class="chip" data-value="cozy home interior background">🏠 Hogar</button>
+              <button class="chip" data-value="outdoor natural park background">🌿 Exterior</button>
+              <button class="chip" data-value="modern office background">🏢 Oficina</button>
+              <button class="chip" data-value="professional photography studio background">📸 Estudio</button>
+            </div>
+          </div>
+
+          <div class="refine-group">
+            <div class="refine-cat-label">Ropa</div>
+            <div class="chip-group" id="refine-clothing">
+              <button class="chip" data-value="casual everyday clothing">👕 Casual</button>
+              <button class="chip" data-value="elegant smart outfit">👗 Elegante</button>
+              <button class="chip" data-value="sporty athletic wear">🏃 Deportivo</button>
+              <button class="chip" data-value="professional business attire">💼 Profesional</button>
+            </div>
+          </div>
+
+          <div class="refine-group">
+            <div class="refine-cat-label">Expresión</div>
+            <div class="chip-group" id="refine-expression">
+              <button class="chip" data-value="warm smile">😊 Sonriente</button>
+              <button class="chip" data-value="natural relaxed expression">😐 Natural</button>
+              <button class="chip" data-value="enthusiastic excited expression">💪 Entusiasta</button>
+              <button class="chip" data-value="confident serious expression">😎 Segura</button>
+            </div>
+          </div>
+
+          <div class="refine-group">
+            <div class="refine-cat-label">Cambios adicionales</div>
+            <textarea id="avatar-refine-notes" rows="2"
+              placeholder="Ej: cabello recogido, gafas de sol, iluminación más cálida..."></textarea>
+          </div>
+
+          <button class="btn btn-primary btn-block" style="margin-top:.75rem" onclick="refineCreatedAvatar()">
+            <span>✨</span> Aplicar cambios y regenerar
+          </button>
+        </div>
+
         <div class="result-footer">
           <button class="btn btn-ghost" onclick="downloadAsset(document.getElementById('created-avatar-output').src, 'avatar-creado.jpg')">⬇ Descargar</button>
           <button class="btn btn-ghost" onclick="useCreatedAvatarForUGC()">Añadir producto (Tab 2)</button>
@@ -642,6 +696,84 @@ Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nun
       </div>
 
     </div><!-- /tab-5 -->
+
+    <!-- ===== TAB 6: GENERAR IMAGEN (ApiMart GPT-Image-2) ===== -->
+    <div id="step-6" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">🖼️</div>
+        <div>
+          <h2>Generar Imagen con IA</h2>
+          <p>Describe la imagen que quieres y sube de 10 a 15 imágenes de referencia. GPT-Image-2 (ApiMart) las fusiona en un resultado nuevo.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Imágenes de referencia <span class="label-optional">(hasta 15 · recomendado 10–15)</span></label>
+        <label class="upload-area" id="img-ref-area">
+          <input type="file" id="img-ref-input" accept="image/*" multiple hidden>
+          <div class="upload-placeholder" id="img-ref-placeholder">
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-text">
+              <strong>Subir imágenes de referencia</strong>
+              <span>JPG, PNG, WEBP · selecciona varias a la vez · máx 15MB c/u</span>
+            </div>
+          </div>
+        </label>
+        <div class="img-ref-grid" id="img-ref-grid"></div>
+        <div class="char-info"><span id="img-ref-count">0</span> / 15 imágenes seleccionadas</div>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción de la imagen *</label>
+        <textarea id="img-gen-prompt" rows="4"
+          placeholder="Ej: 'Fusiona estas fotos en un póster de producto minimalista con fondo beige, luz natural y el producto centrado'"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Formato</label>
+        <div class="chip-group" id="cg-img-size">
+          <button class="chip selected" data-value="1:1">◻ 1:1</button>
+          <button class="chip" data-value="9:16">📱 9:16</button>
+          <button class="chip" data-value="16:9">🖥 16:9</button>
+          <button class="chip" data-value="4:3">🖼 4:3</button>
+          <button class="chip" data-value="3:4">📷 3:4</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Resolución</label>
+        <div class="chip-group" id="cg-img-res">
+          <button class="chip" data-value="1k">1K</button>
+          <button class="chip selected" data-value="2k">2K</button>
+          <button class="chip" data-value="4k">4K</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-image-btn" onclick="generateImages()">
+        <span>🖼️</span> Generar Imagen
+      </button>
+
+      <div id="image-progress" class="progress-card" hidden>
+        <div class="progress-spinner"></div>
+        <p id="image-progress-text">Enviando a GPT-Image-2...</p>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
+
+      <div id="image-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Imagen generada</h3>
+          <button class="btn btn-sm" onclick="generateImages()">↺ Regenerar</button>
+        </div>
+        <div class="avatar-img-wrap">
+          <img id="image-output" src="" alt="Imagen generada">
+        </div>
+        <div class="result-footer">
+          <button class="btn btn-primary" onclick="downloadAsset(state.image.imageUrl, 'imagen-generada.png')">⬇ Descargar</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-6 -->
 
   </main>
 </div>

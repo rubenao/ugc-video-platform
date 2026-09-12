@@ -1221,3 +1221,42 @@ input[type="range"] { width: 100%; accent-color: var(--primary); margin-top: 6px
   cursor: pointer;
 }
 .img-ref-del:hover { background: #dc2626; }
+
+/* ===== TAB 7: Clonar Voz — lista de muestras subidas ===== */
+.voice-clone-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.voice-clone-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  background: var(--surface2);
+}
+.voice-clone-file-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.voice-clone-file-size { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.voice-clone-file-del {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .3);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.voice-clone-file-del:hover { background: #dc2626; }

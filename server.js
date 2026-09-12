@@ -3,6 +3,7 @@ const multer = require('multer');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const FormData = require('form-data');
 require('dotenv').config();
 
 // OpenAI SDK (opcional — si no hay API key se usa fallback de plantilla)
@@ -324,6 +325,59 @@ app.post('/api/audio/generate', async (req, res) => {
     const msg = detail ? Buffer.from(detail).toString('utf8') : err.message;
     console.error('Audio error:', msg);
     res.status(500).json({ error: msg });
+  }
+});
+
+// ---------- VOICE CLONING (ElevenLabs Instant Voice Cloning) ----------
+// https://elevenlabs.io/docs/api-reference/voices/add (POST /v1/voices/add)
+app.post('/api/voices/clone', upload.array('samples', 25), async (req, res) => {
+  const files = req.files || [];
+  const { name, description, gender, accent, age, use_case, removeBackgroundNoise } = req.body;
+
+  if (!name || !name.trim()) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'El nombre de la voz es requerido' });
+  }
+  if (!files.length) {
+    return res.status(400).json({ error: 'Sube al menos una muestra de audio' });
+  }
+
+  try {
+    const form = new FormData();
+    form.append('name', name.trim());
+    if (description) form.append('description', description.trim());
+    if (removeBackgroundNoise === 'true') form.append('remove_background_noise', 'true');
+
+    const labels = {};
+    if (gender)  labels.gender  = gender;
+    if (accent)  labels.accent  = accent;
+    if (age)     labels.age     = age;
+    if (use_case) labels.use_case = use_case;
+    if (Object.keys(labels).length) form.append('labels', JSON.stringify(labels));
+
+    files.forEach(f => form.append('files', fs.createReadStream(f.path), f.originalname));
+
+    const r = await axios.post('https://api.elevenlabs.io/v1/voices/add', form, {
+      headers: {
+        ...form.getHeaders(),
+        'xi-api-key': process.env.ELEVENLABS_API_KEY
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 60000
+    });
+
+    files.forEach(f => fs.unlink(f.path, () => {}));
+
+    res.json({
+      voice_id: r.data.voice_id,
+      requires_verification: r.data.requires_verification || false
+    });
+  } catch (err) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    const detail = err.response?.data;
+    console.error('Voice clone error:', detail || err.message);
+    res.status(500).json({ error: detail?.detail?.message || detail?.detail || err.message });
   }
 });
 

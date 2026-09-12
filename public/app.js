@@ -7,10 +7,11 @@ const state = {
   audio:  { audioUrl: null, audioFilename: null, allVoices: [] },
   video:  { videoUrl: null },
   social: { imageUrl: null, styleAnalysis: '' },
-  image:  { imageUrl: null, refFiles: [] }
+  image:  { imageUrl: null, refFiles: [] },
+  voiceClone: { sampleFiles: [] }
 };
 
-const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen' };
+const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen', 7: 'Clonar Voz' };
 
 // ============================================================
 // Init
@@ -31,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initChips();
   initTab4Uploads();
   initImageRefUpload();
+  initVoiceCloneUpload();
   goToTab(1);
 });
 
@@ -1163,5 +1165,109 @@ async function downloadAsset(url, filename) {
     document.body.removeChild(a);
   } catch (err) {
     toast('Error al descargar: ' + err.message);
+  }
+}
+
+// ============================================================
+// TAB 7: CLONAR VOZ (ElevenLabs Instant Voice Cloning)
+// ============================================================
+const MAX_VOICE_SAMPLES = 25;
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function initVoiceCloneUpload() {
+  const input = document.getElementById('voice-clone-input');
+  const area  = document.getElementById('voice-clone-area');
+
+  function addFiles(fileList) {
+    const incoming = [...fileList].filter(f => f.type.startsWith('audio/'));
+    for (const f of incoming) {
+      if (state.voiceClone.sampleFiles.length >= MAX_VOICE_SAMPLES) {
+        toast(`Máximo ${MAX_VOICE_SAMPLES} archivos`);
+        break;
+      }
+      state.voiceClone.sampleFiles.push(f);
+    }
+    renderVoiceCloneFiles();
+  }
+
+  input.addEventListener('change', e => { addFiles(e.target.files); input.value = ''; });
+  area.addEventListener('dragover',  e => { e.preventDefault(); area.style.borderColor = 'var(--primary)'; });
+  area.addEventListener('dragleave', () => { area.style.borderColor = ''; });
+  area.addEventListener('drop', e => {
+    e.preventDefault(); area.style.borderColor = '';
+    if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+}
+
+function renderVoiceCloneFiles() {
+  const list = document.getElementById('voice-clone-files');
+  list.innerHTML = '';
+  state.voiceClone.sampleFiles.forEach((file, idx) => {
+    const row = document.createElement('div');
+    row.className = 'voice-clone-file';
+    row.innerHTML = `
+      <span class="voice-clone-file-name">${escapeHtml(file.name)}</span>
+      <span class="voice-clone-file-size">${formatFileSize(file.size)}</span>
+    `;
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'voice-clone-file-del';
+    del.textContent = '×';
+    del.onclick = () => { state.voiceClone.sampleFiles.splice(idx, 1); renderVoiceCloneFiles(); };
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  document.getElementById('voice-clone-count').textContent = state.voiceClone.sampleFiles.length;
+}
+
+async function cloneVoice() {
+  const name = document.getElementById('voice-clone-name').value.trim();
+  if (!name) { toast('Escribe un nombre para la voz'); return; }
+  if (!state.voiceClone.sampleFiles.length) { toast('Sube al menos una muestra de audio'); return; }
+
+  const btn = document.getElementById('clone-voice-btn');
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Clonando voz...';
+  document.getElementById('voice-clone-result').hidden = true;
+  loading('Clonando voz con ElevenLabs...');
+
+  try {
+    const fd = new FormData();
+    fd.append('name', name);
+    const description = document.getElementById('voice-clone-description').value.trim();
+    if (description) fd.append('description', description);
+
+    const gender  = document.getElementById('voice-clone-gender').value;
+    const accent  = document.getElementById('voice-clone-accent').value.trim();
+    const age     = document.getElementById('voice-clone-age').value;
+    const usecase = document.getElementById('voice-clone-usecase').value.trim();
+    if (gender)  fd.append('gender', gender);
+    if (accent)  fd.append('accent', accent);
+    if (age)     fd.append('age', age);
+    if (usecase) fd.append('use_case', usecase);
+
+    state.voiceClone.sampleFiles.forEach(f => fd.append('samples', f));
+
+    const res  = await fetch('/api/voices/clone', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error clonando la voz');
+
+    document.getElementById('voice-clone-result-name').textContent = name;
+    document.getElementById('voice-clone-result').hidden = false;
+    markTabDone(7);
+    setNavSub(7, 'Voz creada ✓');
+    toast('¡Voz clonada correctamente! 🎉', 'success');
+
+    // Refresca el catálogo de voces para que aparezca en el Tab de Audio
+    await loadVoices();
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    hideLoading();
+    btn.disabled = false; btn.innerHTML = '<span>🗣️</span> Clonar Voz';
   }
 }

@@ -420,11 +420,33 @@ Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nun
       </div>
 
       <div class="form-group">
-        <label>Voz</label>
+        <label>Buscar voz por nombre</label>
         <div class="voice-row">
-          <select id="voice-select"><option value="">Cargando voces...</option></select>
+          <input type="text" id="voice-search" class="text-input" placeholder="Ej: Enrique Nieto, Carlos, Daniela...">
+          <button class="btn btn-sm" id="voice-search-btn" onclick="searchVoicesByName()">Buscar</button>
+        </div>
+        <div id="voice-search-results" class="voice-list" hidden></div>
+      </div>
+
+      <div class="form-group">
+        <label>Filtrar voces (biblioteca cargada)</label>
+        <div class="voice-filters">
+          <select id="voice-filter-gender"><option value="">Género (todos)</option></select>
+          <select id="voice-filter-accent"><option value="">Acento (todos)</option></select>
+          <select id="voice-filter-age"><option value="">Edad (todas)</option></select>
+          <select id="voice-filter-usecase"><option value="">Uso (todos)</option></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Voz seleccionada</label>
+        <div class="voice-row">
+          <select id="voice-select" hidden><option value="">Cargando voces...</option></select>
+          <span id="voice-selected-label" class="voice-selected-label">Ninguna voz seleccionada</span>
           <button class="btn btn-sm" id="preview-voice-btn" onclick="previewVoice()" disabled>▶ Preview</button>
         </div>
+        <div class="char-info" id="voice-count-info"></div>
+        <div id="voice-list" class="voice-list"></div>
       </div>
 
       <div class="sliders-row">

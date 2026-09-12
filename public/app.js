@@ -4,7 +4,7 @@
 const state = {
   createdAvatarUrl: null,
   avatar: { imageUrl: null },
-  audio:  { audioUrl: null, audioFilename: null },
+  audio:  { audioUrl: null, audioFilename: null, allVoices: [] },
   video:  { videoUrl: null },
   social: { imageUrl: null, styleAnalysis: '' },
   image:  { imageUrl: null, refFiles: [] }
@@ -17,6 +17,12 @@ const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   loadVoices();
+  ['voice-filter-gender', 'voice-filter-accent', 'voice-filter-age', 'voice-filter-usecase'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderVoiceOptions);
+  });
+  document.getElementById('voice-search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); searchVoicesByName(); }
+  });
   initUpload('person-image', 'person-area', 'person-placeholder', 'person-preview');
   initUpload('product-image', 'product-area', 'product-placeholder', 'product-preview');
   initUpload('ref-image', 'ref-area', 'ref-placeholder', 'ref-preview');
@@ -415,24 +421,173 @@ function confirmAvatar() {
 // ============================================================
 // TAB 3: AUDIO
 // ============================================================
+let currentPreviewAudio = null;
+
 async function loadVoices() {
   try {
     const res  = await fetch('/api/voices');
     const data = await res.json();
-    const sel  = document.getElementById('voice-select');
-    const btn  = document.getElementById('preview-voice-btn');
     if (data.voices?.length) {
-      sel.innerHTML = data.voices.map(v => {
-        const label = v.labels?.accent ? `${v.name} (${v.labels.accent})` : v.name;
-        return `<option value="${v.id}" data-preview="${v.preview_url || ''}">${label}</option>`;
-      }).join('');
-      btn.disabled = false;
+      state.audio.allVoices = data.voices;
+      populateVoiceFilterOptions(data.voices);
+      renderVoiceOptions();
     } else {
-      sel.innerHTML = '<option value="">No se encontraron voces</option>';
+      state.audio.allVoices = [];
+      document.getElementById('voice-list').innerHTML = '<p class="char-info">No se encontraron voces</p>';
     }
   } catch {
-    document.getElementById('voice-select').innerHTML = '<option value="">Error al cargar voces</option>';
+    state.audio.allVoices = [];
+    document.getElementById('voice-list').innerHTML = '<p class="char-info">Error al cargar voces</p>';
   }
+}
+
+async function searchVoicesByName() {
+  const query = document.getElementById('voice-search').value.trim();
+  if (!query) { toast('Escribe un nombre para buscar'); return; }
+
+  const btn = document.getElementById('voice-search-btn');
+  btn.disabled = true; btn.textContent = 'Buscando...';
+  try {
+    const res  = await fetch(`/api/voices?search=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    const resultsBox = document.getElementById('voice-search-results');
+    if (!data.voices?.length) {
+      resultsBox.hidden = false;
+      resultsBox.innerHTML = `<p class="char-info">Sin resultados para "${query}"</p>`;
+      return;
+    }
+
+    // Añade los encontrados al catálogo general para que también entren en los filtros
+    const byId = new Map((state.audio.allVoices || []).map(v => [v.id, v]));
+    data.voices.forEach(v => byId.set(v.id, v));
+    state.audio.allVoices = [...byId.values()];
+    populateVoiceFilterOptions(state.audio.allVoices);
+
+    resultsBox.hidden = false;
+    resultsBox.innerHTML = renderVoiceCards(data.voices);
+    renderVoiceOptions();
+  } catch {
+    toast('Error buscando voces');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Buscar';
+  }
+}
+
+function populateVoiceFilterOptions(voices) {
+  const fields = [
+    { id: 'voice-filter-gender',  key: 'gender' },
+    { id: 'voice-filter-accent',  key: 'accent' },
+    { id: 'voice-filter-age',     key: 'age' },
+    { id: 'voice-filter-usecase', key: 'use_case' }
+  ];
+  fields.forEach(({ id, key }) => {
+    const sel = document.getElementById(id);
+    const current = sel.value;
+    const values = [...new Set(voices.map(v => v.labels?.[key]).filter(Boolean))].sort();
+    const placeholder = sel.options[0]?.outerHTML || '';
+    sel.innerHTML = placeholder + values.map(val =>
+      `<option value="${val}">${val.charAt(0).toUpperCase() + val.slice(1)}</option>`
+    ).join('');
+    if (values.includes(current)) sel.value = current;
+  });
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function renderVoiceCards(voices) {
+  const selectedId = document.getElementById('voice-select').value;
+  return voices.map(v => {
+    const l = v.labels || {};
+    const tags = [l.accent, l.gender, l.age].filter(Boolean).join(' · ');
+    const isSelected = v.id === selectedId;
+    return `
+      <div class="voice-card${isSelected ? ' selected' : ''}" data-voice-id="${v.id}" onclick="selectVoiceCard('${v.id}')">
+        <button type="button" class="voice-card-play" onclick="event.stopPropagation(); playVoicePreview('${v.id}', this)" title="Escuchar">▶</button>
+        <div class="voice-card-info">
+          <div class="voice-card-name">${escapeHtml(v.name)}</div>
+          <div class="voice-card-tags">${escapeHtml(tags || v.source || '')}</div>
+        </div>
+        ${isSelected ? '<span class="voice-card-badge">Seleccionada</span>' : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderVoiceOptions() {
+  const sel = document.getElementById('voice-select');
+  const voices = state.audio.allVoices || [];
+  const gender  = document.getElementById('voice-filter-gender').value;
+  const accent  = document.getElementById('voice-filter-accent').value;
+  const age     = document.getElementById('voice-filter-age').value;
+  const usecase = document.getElementById('voice-filter-usecase').value;
+
+  const filtered = voices.filter(v => {
+    const l = v.labels || {};
+    if (gender  && l.gender  !== gender)  return false;
+    if (accent  && l.accent  !== accent)  return false;
+    if (age     && l.age     !== age)     return false;
+    if (usecase && l.use_case !== usecase) return false;
+    return true;
+  });
+
+  document.getElementById('voice-count-info').textContent =
+    `${filtered.length} de ${voices.length} voces`;
+
+  sel.innerHTML = filtered.map(v =>
+    `<option value="${v.id}" data-preview="${v.preview_url || ''}">${escapeHtml(v.name)}</option>`
+  ).join('');
+
+  const list = document.getElementById('voice-list');
+  list.innerHTML = filtered.length
+    ? renderVoiceCards(filtered)
+    : '<p class="char-info">Sin resultados con estos filtros</p>';
+}
+
+function selectVoiceCard(voiceId) {
+  const sel = document.getElementById('voice-select');
+  const voices = state.audio.allVoices || [];
+  const voice = voices.find(v => v.id === voiceId);
+  if (!voice) return;
+
+  // Asegura que el <select> tenga una opción para esta voz (puede venir solo de búsqueda)
+  if (![...sel.options].some(o => o.value === voiceId)) {
+    const opt = document.createElement('option');
+    opt.value = voiceId;
+    opt.dataset.preview = voice.preview_url || '';
+    opt.textContent = voice.name;
+    sel.appendChild(opt);
+  }
+  sel.value = voiceId;
+  document.getElementById('preview-voice-btn').disabled = false;
+  document.getElementById('voice-selected-label').textContent = voice.name;
+
+  // Refresca las tarjetas visibles para marcar la seleccionada
+  document.querySelectorAll('.voice-card').forEach(card => {
+    const isSel = card.dataset.voiceId === voiceId;
+    card.classList.toggle('selected', isSel);
+    const badge = card.querySelector('.voice-card-badge');
+    if (isSel && !badge) {
+      card.insertAdjacentHTML('beforeend', '<span class="voice-card-badge">Seleccionada</span>');
+    } else if (!isSel && badge) {
+      badge.remove();
+    }
+  });
+}
+
+function playVoicePreview(voiceId, btnEl) {
+  const voice = (state.audio.allVoices || []).find(v => v.id === voiceId);
+  if (!voice?.preview_url) { toast('Esta voz no tiene preview'); return; }
+
+  if (currentPreviewAudio) { currentPreviewAudio.pause(); currentPreviewAudio = null; }
+  document.querySelectorAll('.voice-card-play.playing').forEach(b => { b.classList.remove('playing'); b.textContent = '▶'; });
+
+  const audio = new Audio(voice.preview_url);
+  currentPreviewAudio = audio;
+  if (btnEl) { btnEl.classList.add('playing'); btnEl.textContent = '⏸'; }
+  audio.addEventListener('ended', () => { if (btnEl) { btnEl.classList.remove('playing'); btnEl.textContent = '▶'; } });
+  audio.play().catch(() => toast('No se pudo reproducir el preview'));
 }
 
 function previewVoice() {

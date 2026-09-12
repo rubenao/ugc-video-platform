@@ -91,17 +91,90 @@ async function resolvePublicImageUrl(imageUrl) {
 }
 
 // ---------- VOICES ----------
-app.get('/api/voices', async (req, res) => {
-  try {
-    const r = await axios.get('https://api.elevenlabs.io/v1/voices', {
-      headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY }
+// Cuenta propia: https://elevenlabs.io/docs/api-reference/voices/search (GET /v2/voices)
+// NOTA: /v2/voices SOLO devuelve las voces guardadas en tu cuenta. El parámetro
+// voice_type=community no busca la Voice Library pública (verificado: devuelve 0
+// resultados), así que para acentos como mexicano/latam hay que usar el endpoint
+// de la biblioteca pública: GET /v1/shared-voices.
+async function fetchAccountVoices(params, maxPages) {
+  const voices = [];
+  let nextPageToken;
+  let pages = 0;
+  do {
+    const p = { ...params, page_size: 100 };
+    if (nextPageToken) p.next_page_token = nextPageToken;
+
+    const r = await axios.get('https://api.elevenlabs.io/v2/voices', {
+      headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY },
+      params: p
     });
-    const voices = r.data.voices.map(v => ({
+    voices.push(...r.data.voices.map(v => ({
       id: v.voice_id,
       name: v.name,
+      category: v.category,
       preview_url: v.preview_url,
-      labels: v.labels
-    }));
+      labels: v.labels,
+      source: 'account'
+    })));
+    nextPageToken = r.data.has_more ? r.data.next_page_token : null;
+    pages++;
+  } while (nextPageToken && pages < maxPages);
+  return voices;
+}
+
+async function fetchLibraryVoices(params) {
+  // Su paginación por cursor (last_sort_id) no es fiable en este endpoint legacy;
+  // pedimos una página grande y filtrada, suficiente para poblar el selector.
+  const r = await axios.get('https://api.elevenlabs.io/v1/shared-voices', {
+    headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY },
+    params: { ...params, page_size: 100 }
+  });
+  return r.data.voices.map(v => ({
+    id: v.voice_id,
+    name: v.name,
+    category: v.category,
+    preview_url: v.preview_url,
+    labels: {
+      accent: v.accent,
+      gender: v.gender,
+      age: v.age,
+      language: v.language,
+      use_case: v.use_case,
+      descriptive: v.descriptive
+    },
+    source: 'library'
+  }));
+}
+
+app.get('/api/voices', async (req, res) => {
+  try {
+    const { gender, accent, age, use_cases, language, category, search, source } = req.query;
+    const baseParams = {};
+    if (gender)    baseParams.gender    = gender;
+    if (accent)    baseParams.accent    = accent;
+    if (age)       baseParams.age       = age;
+    if (use_cases) baseParams.use_cases = use_cases;
+    if (language)  baseParams.language  = language;
+    if (category)  baseParams.category  = category;
+    if (search)    baseParams.search    = search;
+
+    let voices;
+    if (source === 'account') {
+      voices = await fetchAccountVoices(baseParams, 10);
+    } else if (source === 'library') {
+      voices = await fetchLibraryVoices(baseParams);
+    } else {
+      // Por defecto: voces de tu cuenta + biblioteca pública (donde están los
+      // acentos mexicano/latam), sin traer toda la Voice Library de golpe.
+      const [own, library] = await Promise.all([
+        fetchAccountVoices(baseParams, 10),
+        fetchLibraryVoices(baseParams)
+      ]);
+      const byId = new Map();
+      [...own, ...library].forEach(v => byId.set(v.id, v));
+      voices = [...byId.values()];
+    }
+
     res.json({ voices });
   } catch (err) {
     res.status(500).json({ error: err.response?.data?.detail || err.message });

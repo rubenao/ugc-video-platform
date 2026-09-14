@@ -978,6 +978,123 @@ app.get('/api/images/status/:id', async (req, res) => {
   }
 });
 
+// ---------- VIDEO GENERATION (ApiMart · Gemini Omni Flash Ext) ----------
+// Genera video (con audio) a partir de un prompt, imágenes de referencia y/o un video de referencia.
+const VIDEO_DURATIONS = [4, 6, 8, 10];
+const VIDEO_RESOLUTIONS = ['360p', '720p', '1080p', '4k'];
+
+app.post('/api/videos/generate', upload.fields([
+  { name: 'refImages', maxCount: 3 },
+  { name: 'refVideo', maxCount: 1 }
+]), async (req, res) => {
+  const imageFiles = (req.files && req.files.refImages) || [];
+  const videoFiles = (req.files && req.files.refVideo) || [];
+  const allFiles = [...imageFiles, ...videoFiles];
+  const {
+    prompt,
+    duration = 6,
+    resolution = '720p',
+    aspect_ratio = '16:9',
+    generation_type
+  } = req.body;
+
+  if (!process.env.APIMART_API_KEY) {
+    allFiles.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'APIMART_API_KEY no está configurada en el servidor' });
+  }
+  if (!prompt || !prompt.trim()) {
+    allFiles.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'El prompt es requerido' });
+  }
+  if (imageFiles.length !== 0 && imageFiles.length !== 1 && imageFiles.length !== 3) {
+    allFiles.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'Debes subir 0, 1 o 3 imágenes de referencia' });
+  }
+  if (videoFiles.length > 1) {
+    allFiles.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'Máximo 1 video de referencia' });
+  }
+
+  try {
+    const body = {
+      model: 'gemini-omni-1.1-flash-ext',
+      prompt: prompt.trim(),
+      aspect_ratio
+    };
+
+    if (VIDEO_RESOLUTIONS.includes(String(resolution).toLowerCase())) {
+      body.resolution = String(resolution).toLowerCase();
+    }
+
+    if (imageFiles.length) {
+      body.image_urls = imageFiles.map(f => toDataURI(f.path));
+      body.generation_type = generation_type === 'reference' ? 'reference' : 'frame';
+    }
+
+    if (videoFiles.length) {
+      body.video_urls = [toDataURI(videoFiles[0].path)];
+      // duration no se puede combinar con video_urls según la API
+    } else {
+      const dur = parseInt(duration);
+      body.duration = VIDEO_DURATIONS.includes(dur) ? dur : 6;
+    }
+
+    const r = await axios.post(
+      'https://api.apimart.ai/v1/videos/generations',
+      body,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.APIMART_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        timeout: 60000
+      }
+    );
+
+    allFiles.forEach(f => fs.unlink(f.path, () => {}));
+
+    const entry = Array.isArray(r.data?.data) ? r.data.data[0] : r.data?.data;
+    const taskId = entry?.task_id || entry?.id;
+    if (!taskId) {
+      return res.status(500).json({ error: 'ApiMart no devolvió un task_id', raw: r.data });
+    }
+    res.json({ task_id: taskId, status: entry.status || 'submitted' });
+  } catch (err) {
+    allFiles.forEach(f => fs.unlink(f.path, () => {}));
+    const detail = err.response?.data;
+    console.error('ApiMart video generate error:', detail || err.message);
+    res.status(500).json({ error: detail?.message || detail?.error || JSON.stringify(detail) || err.message });
+  }
+});
+
+app.get('/api/videos/status/:id', async (req, res) => {
+  try {
+    const r = await axios.get(
+      `https://api.apimart.ai/v1/tasks/${req.params.id}`,
+      { headers: { Authorization: `Bearer ${process.env.APIMART_API_KEY}` } }
+    );
+    const d = r.data?.data || {};
+    const videos = (d.result?.videos || [])
+      .map(v => (Array.isArray(v.url) ? v.url[0] : v.url))
+      .filter(Boolean);
+
+    let status = d.status || 'processing';
+    if (status === 'completed' || status === 'success') status = 'succeeded';
+    if (status === 'failed' || status === 'error') status = 'failed';
+
+    res.json({
+      status,
+      progress: d.progress,
+      output: videos,
+      error: d.error || d.fail_reason || null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n🎬 UGC Video Creator corriendo en http://localhost:${PORT}\n`);
 });

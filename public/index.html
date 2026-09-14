@@ -72,6 +72,13 @@
           <span class="nav-sub" id="nav-sub-7">Crea una voz con ElevenLabs</span>
         </div>
       </button>
+      <button class="nav-item" data-tab="8" onclick="goToTab(8)">
+        <div class="nav-num" id="nav-num-8"><span>8</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">🎬</span><span class="nav-title">Generar Video</span></div>
+          <span class="nav-sub" id="nav-sub-8">Gemini Omni Flash Ext · ApiMart</span>
+        </div>
+      </button>
     </nav>
 
     <!-- Progress summary -->
@@ -876,6 +883,113 @@ Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nun
       </div>
 
     </div><!-- /tab-7 -->
+
+    <!-- ===== TAB 8: GENERAR VIDEO (ApiMart · Gemini Omni Flash Ext) ===== -->
+    <div id="step-8" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">🎬</div>
+        <div>
+          <h2>Generar Video con IA</h2>
+          <p>Describe la escena, opcionalmente sube imágenes o un video de referencia, y Gemini Omni Flash Ext (ApiMart) genera el video con audio.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción del video *</label>
+        <textarea id="video-gen-prompt" rows="4"
+          placeholder="Ej: 'Toma cercana de un producto de skincare girando sobre una mesa de mármol, luz cálida, cámara haciendo un dolly-in lento, sonido ambiente suave'"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Imágenes de referencia <span class="label-optional">(opcional · 1 para modo "frame" o 1–3 para modo "reference")</span></label>
+        <label class="upload-area" id="video-ref-area">
+          <input type="file" id="video-ref-input" accept="image/*" multiple hidden>
+          <div class="upload-placeholder" id="video-ref-placeholder">
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-text">
+              <strong>Subir imágenes de referencia</strong>
+              <span>JPG, PNG, WEBP · 1 o hasta 3 imágenes</span>
+            </div>
+          </div>
+        </label>
+        <div class="img-ref-grid" id="video-ref-grid"></div>
+        <div class="char-info"><span id="video-ref-count">0</span> / 3 imágenes seleccionadas</div>
+      </div>
+
+      <div class="form-group" id="video-gen-type-group" hidden>
+        <label>Modo de generación</label>
+        <div class="chip-group" id="cg-video-gentype">
+          <button class="chip selected" data-value="frame">🖼 Frame (1 imagen)</button>
+          <button class="chip" data-value="reference">🎨 Reference (1–3 imágenes)</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Video de referencia <span class="label-optional">(opcional · reemplaza la duración)</span></label>
+        <label class="upload-area" id="video-source-area">
+          <input type="file" id="video-source-input" accept="video/*" hidden>
+          <div class="upload-placeholder" id="video-source-placeholder">
+            <div class="upload-icon">🎞️</div>
+            <div class="upload-text">
+              <strong>Subir video de referencia</strong>
+              <span>MP4, MOV... 1 video como máximo</span>
+            </div>
+          </div>
+        </label>
+        <div id="video-source-file" class="voice-clone-files"></div>
+      </div>
+
+      <div class="form-group" id="video-gen-duration-group">
+        <label>Duración</label>
+        <div class="chip-group" id="cg-video-duration">
+          <button class="chip" data-value="4">4s</button>
+          <button class="chip selected" data-value="6">6s</button>
+          <button class="chip" data-value="8">8s</button>
+          <button class="chip" data-value="10">10s</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Formato</label>
+        <div class="chip-group" id="cg-video-aspect">
+          <button class="chip selected" data-value="16:9">🖥 16:9</button>
+          <button class="chip" data-value="9:16">📱 9:16</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Resolución</label>
+        <div class="chip-group" id="cg-video-res">
+          <button class="chip" data-value="360p">360p</button>
+          <button class="chip selected" data-value="720p">720p</button>
+          <button class="chip" data-value="1080p">1080p</button>
+          <button class="chip" data-value="4k">4K</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-video-btn" onclick="generateVideoAI()">
+        <span>🎬</span> Generar Video
+      </button>
+
+      <div id="video-gen-progress" class="progress-card" hidden>
+        <div class="progress-spinner"></div>
+        <p id="video-gen-progress-text">Enviando a Gemini Omni Flash Ext...</p>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
+
+      <div id="video-gen-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Video generado</h3>
+          <button class="btn btn-sm" onclick="generateVideoAI()">↺ Regenerar</button>
+        </div>
+        <video id="video-gen-output" controls style="width:100%;border-radius:12px"></video>
+        <div class="result-footer">
+          <button class="btn btn-primary" onclick="downloadAsset(state.videoGen.videoUrl, 'video-generado.mp4')">⬇ Descargar</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-8 -->
 
   </main>
 </div>

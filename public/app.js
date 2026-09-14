@@ -8,10 +8,11 @@ const state = {
   video:  { videoUrl: null },
   social: { imageUrl: null, styleAnalysis: '' },
   image:  { imageUrl: null, refFiles: [] },
-  voiceClone: { sampleFiles: [] }
+  voiceClone: { sampleFiles: [] },
+  videoGen: { videoUrl: null, refFiles: [], sourceVideoFile: null }
 };
 
-const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen', 7: 'Clonar Voz' };
+const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen', 7: 'Clonar Voz', 8: 'Generar Video' };
 
 // ============================================================
 // Init
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTab4Uploads();
   initImageRefUpload();
   initVoiceCloneUpload();
+  initVideoGenUploads();
   goToTab(1);
 });
 
@@ -1270,4 +1272,168 @@ async function cloneVoice() {
     hideLoading();
     btn.disabled = false; btn.innerHTML = '<span>🗣️</span> Clonar Voz';
   }
+}
+
+// ============================================================
+// TAB 8: GENERAR VIDEO (ApiMart · Gemini Omni Flash Ext)
+// ============================================================
+const MAX_VIDEO_REF_IMAGES = 3;
+
+function initVideoGenUploads() {
+  const imgInput = document.getElementById('video-ref-input');
+  const imgArea  = document.getElementById('video-ref-area');
+
+  function addImages(fileList) {
+    const incoming = [...fileList].filter(f => f.type.startsWith('image/'));
+    for (const f of incoming) {
+      if (state.videoGen.refFiles.length >= MAX_VIDEO_REF_IMAGES) {
+        toast(`Máximo ${MAX_VIDEO_REF_IMAGES} imágenes`);
+        break;
+      }
+      state.videoGen.refFiles.push(f);
+    }
+    renderVideoRefGrid();
+  }
+
+  imgInput.addEventListener('change', e => { addImages(e.target.files); imgInput.value = ''; });
+  imgArea.addEventListener('dragover',  e => { e.preventDefault(); imgArea.style.borderColor = 'var(--primary)'; });
+  imgArea.addEventListener('dragleave', () => { imgArea.style.borderColor = ''; });
+  imgArea.addEventListener('drop', e => {
+    e.preventDefault(); imgArea.style.borderColor = '';
+    if (e.dataTransfer.files) addImages(e.dataTransfer.files);
+  });
+
+  const vidInput = document.getElementById('video-source-input');
+  const vidArea  = document.getElementById('video-source-area');
+
+  function setSourceVideo(fileList) {
+    const f = [...fileList].find(f => f.type.startsWith('video/'));
+    if (!f) return;
+    state.videoGen.sourceVideoFile = f;
+    renderVideoSourceFile();
+  }
+
+  vidInput.addEventListener('change', e => { setSourceVideo(e.target.files); vidInput.value = ''; });
+  vidArea.addEventListener('dragover',  e => { e.preventDefault(); vidArea.style.borderColor = 'var(--primary)'; });
+  vidArea.addEventListener('dragleave', () => { vidArea.style.borderColor = ''; });
+  vidArea.addEventListener('drop', e => {
+    e.preventDefault(); vidArea.style.borderColor = '';
+    if (e.dataTransfer.files) setSourceVideo(e.dataTransfer.files);
+  });
+}
+
+function renderVideoRefGrid() {
+  const grid = document.getElementById('video-ref-grid');
+  grid.innerHTML = '';
+  state.videoGen.refFiles.forEach((file, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'img-ref-thumb';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'img-ref-del';
+    del.textContent = '×';
+    del.onclick = () => { state.videoGen.refFiles.splice(idx, 1); renderVideoRefGrid(); };
+    cell.appendChild(img);
+    cell.appendChild(del);
+    grid.appendChild(cell);
+  });
+  document.getElementById('video-ref-count').textContent = state.videoGen.refFiles.length;
+
+  const typeGroup = document.getElementById('video-gen-type-group');
+  typeGroup.hidden = state.videoGen.refFiles.length === 0;
+}
+
+function renderVideoSourceFile() {
+  const box = document.getElementById('video-source-file');
+  box.innerHTML = '';
+  const file = state.videoGen.sourceVideoFile;
+  const durationGroup = document.getElementById('video-gen-duration-group');
+  if (!file) { durationGroup.hidden = false; return; }
+
+  const row = document.createElement('div');
+  row.className = 'voice-clone-file';
+  row.innerHTML = `
+    <span class="voice-clone-file-name">${escapeHtml(file.name)}</span>
+    <span class="voice-clone-file-size">${formatFileSize(file.size)}</span>
+  `;
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'voice-clone-file-del';
+  del.textContent = '×';
+  del.onclick = () => { state.videoGen.sourceVideoFile = null; renderVideoSourceFile(); };
+  row.appendChild(del);
+  box.appendChild(row);
+
+  // La API no permite combinar video_urls con duration
+  durationGroup.hidden = true;
+}
+
+async function generateVideoAI() {
+  const prompt = document.getElementById('video-gen-prompt').value.trim();
+  if (!prompt) { toast('Escribe la descripción del video'); return; }
+  if (state.videoGen.refFiles.length === 2) {
+    toast('Sube 1 o 3 imágenes de referencia, no 2'); return;
+  }
+
+  const btn = document.getElementById('gen-video-btn');
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Generando...';
+  document.getElementById('video-gen-result').hidden = true;
+  document.getElementById('video-gen-progress').hidden = false;
+  document.getElementById('video-gen-progress-text').textContent = 'Enviando a Gemini Omni Flash Ext...';
+
+  try {
+    const fd = new FormData();
+    fd.append('prompt', prompt);
+    fd.append('aspect_ratio', getChipValue('cg-video-aspect') || '16:9');
+    fd.append('resolution', getChipValue('cg-video-res') || '720p');
+    fd.append('duration', getChipValue('cg-video-duration') || '6');
+    if (state.videoGen.refFiles.length) {
+      fd.append('generation_type', getChipValue('cg-video-gentype') || 'frame');
+      state.videoGen.refFiles.forEach(f => fd.append('refImages', f));
+    }
+    if (state.videoGen.sourceVideoFile) {
+      fd.append('refVideo', state.videoGen.sourceVideoFile);
+    }
+
+    const res  = await fetch('/api/videos/generate', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error generando el video');
+
+    await pollVideoGen(data.task_id);
+  } catch (err) {
+    toast(err.message);
+    document.getElementById('video-gen-progress').hidden = true;
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<span>🎬</span> Generar Video';
+  }
+}
+
+async function pollVideoGen(taskId) {
+  const statusEl = document.getElementById('video-gen-progress-text');
+  for (let i = 0; i < 100; i++) {
+    await sleep(5000);
+    const res  = await fetch(`/api/videos/status/${taskId}`);
+    const data = await res.json();
+    if (typeof data.progress === 'number') statusEl.textContent = `Generando video... ${data.progress}%`;
+    if (data.status === 'succeeded' && data.output?.length) {
+      showVideoGenResult(data.output[0]);
+      return;
+    }
+    if (data.status === 'failed') throw new Error(data.error || 'Falló la generación del video');
+  }
+  throw new Error('Tiempo de espera agotado');
+}
+
+function showVideoGenResult(videoUrl) {
+  state.videoGen.videoUrl = videoUrl;
+  document.getElementById('video-gen-progress').hidden = true;
+  document.getElementById('video-gen-output').src = videoUrl;
+  const card = document.getElementById('video-gen-result');
+  card.hidden = false;
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  markTabDone(8);
+  setNavSub(8, 'Video listo ✓');
+  toast('¡Video generado! 🎉', 'success');
 }

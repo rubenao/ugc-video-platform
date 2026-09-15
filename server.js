@@ -1095,6 +1095,82 @@ app.get('/api/videos/status/:id', async (req, res) => {
   }
 });
 
+// ---------- BROCHURE GENERATION (ApiMart · GPT-Image-2) ----------
+// Igual que /api/images/generate, pero siempre adjunta los logos oficiales
+// de DrMiz LAB y DrMiz Farma como referencia adicional para que la IA los
+// incluya en el diseño.
+const BRAND_LOGOS = [
+  { path: path.join(__dirname, 'public', 'assets', 'logos', 'drmizlab-logo.png'), name: 'DrMiz LAB' },
+  { path: path.join(__dirname, 'public', 'assets', 'logos', 'drmizfarma-logo.png'), name: 'DrMiz Farma' }
+];
+
+app.post('/api/brochure/generate', upload.array('refImages', 13), async (req, res) => {
+  const files = req.files || [];
+  const {
+    prompt,
+    size = '3:4',
+    resolution = '4k',
+    n = 1
+  } = req.body;
+
+  if (!process.env.APIMART_API_KEY) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'APIMART_API_KEY no está configurada en el servidor' });
+  }
+  if (!prompt || !prompt.trim()) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(400).json({ error: 'El prompt es requerido' });
+  }
+
+  try {
+    const logoUrls = BRAND_LOGOS
+      .filter(l => fs.existsSync(l.path))
+      .map(l => toDataURI(l.path));
+    const imageUrls = [...files.map(f => toDataURI(f.path)), ...logoUrls];
+
+    const logoNote = logoUrls.length
+      ? '\nIncluye ambos logos de marca proporcionados entre las imágenes de referencia (DrMiz LAB y DrMiz Farma) reproducidos exactamente como se ven, colocados de forma discreta y profesional (ej. en el encabezado o en la franja inferior junto a los sellos de marca), sin deformarlos ni recolorearlos.'
+      : '';
+
+    const body = {
+      model: 'gpt-image-2',
+      prompt: prompt.trim() + logoNote,
+      size,
+      resolution: String(resolution).toLowerCase(),
+      n: Math.min(Math.max(parseInt(n) || 1, 1), 4)
+    };
+    if (imageUrls.length) body.image_urls = imageUrls;
+
+    const r = await axios.post(
+      'https://api.apimart.ai/v1/images/generations',
+      body,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.APIMART_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        timeout: 60000
+      }
+    );
+
+    files.forEach(f => fs.unlink(f.path, () => {}));
+
+    const entry = Array.isArray(r.data?.data) ? r.data.data[0] : r.data?.data;
+    const taskId = entry?.task_id || entry?.id;
+    if (!taskId) {
+      return res.status(500).json({ error: 'ApiMart no devolvió un task_id', raw: r.data });
+    }
+    res.json({ task_id: taskId, status: entry.status || 'submitted' });
+  } catch (err) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    const detail = err.response?.data;
+    console.error('ApiMart brochure generate error:', detail || err.message);
+    res.status(500).json({ error: detail?.message || detail?.error || JSON.stringify(detail) || err.message });
+  }
+});
+
 // ---------- BROCHURE: RESEARCH PRODUCT(S) FROM URL(S) ----------
 // Extrae de una o varias URLs de producto (ej. drmiz-lab.mx) info estructurada:
 // nombre, código, presentación, activos, beneficios, modo de uso, tipo de piel/pH.

@@ -1443,7 +1443,7 @@ function showVideoGenResult(videoUrl) {
 // ============================================================
 // TAB 9: FOLLETOS, BROCHURES Y RUTINAS DE SKINCARE (ApiMart GPT-Image-2)
 // ============================================================
-const MAX_BROCHURE_IMAGES = 15;
+const MAX_BROCHURE_IMAGES = 13; // + 2 slots reservados para logos DrMiz LAB / DrMiz Farma (siempre incluidos)
 
 const BROCHURE_TEMPLATES = {
   ficha: {
@@ -1577,7 +1577,7 @@ async function generateBrochure() {
     fd.append('resolution', getChipValue('cg-brochure-res') || '4k');
     state.brochure.refFiles.forEach(f => fd.append('refImages', f));
 
-    const res  = await fetch('/api/images/generate', { method: 'POST', body: fd });
+    const res  = await fetch('/api/brochure/generate', { method: 'POST', body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error generando el folleto');
 

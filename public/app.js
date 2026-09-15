@@ -1448,27 +1448,56 @@ const MAX_BROCHURE_IMAGES = 13; // + 2 slots reservados para logos DrMiz LAB / D
 const BROCHURE_TEMPLATES = {
   ficha: {
     label: 'Ficha técnica de productos',
-    build: (p) => `Diseña una ficha técnica / catálogo de productos de skincare en español, estilo infografía profesional de marca de dermocosmética, formato tipo "DrMiz LAB Skin Products". Fondo blanco/beige claro y limpio, tarjetas en grid con esquinas redondeadas, tipografía elegante en tonos azul marino y rosa/nude. Incluye para cada producto: nombre, código, presentación, lista de activos destacados con íconos, lista de beneficios con checks, modo de uso, y un ícono circular de tipo de piel/pH. Usa las fotos de producto proporcionadas como referencia exacta de packaging (colores, etiquetas, forma del envase) e insértalas en cada tarjeta.
+    build: (p) => `Diseña una ficha técnica / catálogo de productos de skincare en español, estilo infografía profesional de marca de dermocosmética ${p.brand}. Fondo blanco/beige claro y limpio, tarjetas en grid con esquinas redondeadas, tipografía elegante en tonos azul marino y rosa/nude. Incluye para cada producto: nombre, código, presentación, lista de activos destacados con íconos, lista de beneficios con checks, modo de uso, y un ícono circular de tipo de piel/pH. Usa las fotos de producto proporcionadas como referencia exacta de packaging (colores, etiquetas, forma del envase) e insértalas en cada tarjeta.
 Productos / información a incluir: ${p.details || '(usar la información visible en las imágenes de referencia)'}.
 Título del folleto: "${p.title || 'FICHA TÉCNICA DE PRODUCTOS'}".
-Agrega el logo "DrMiz LAB" en la parte superior y una franja inferior con los sellos: Vegano, Sin Parabenos, Cruelty Free, Dermatológicamente probado. Resultado limpio, editorial, listo para imprimir en alta resolución.`
+Agrega una franja inferior con los sellos: Vegano, Sin Parabenos, Cruelty Free, Dermatológicamente probado. Resultado limpio, editorial, listo para imprimir en alta resolución.`
   },
   rutina: {
     label: 'Rutina de skincare (día/noche)',
-    build: (p) => `Diseña una infografía de "Rutina Facial" de skincare en español, estilo editorial de marca de dermocosmética "DrMiz LAB Skin Products", fondo blanco elegante con acentos azul marino. Divide en dos bloques claramente marcados: "RUTINA DE DÍA" (ícono de sol) y "RUTINA DE NOCHE" (ícono de luna), cada uno con pasos numerados del 1 al 5 (Limpiar, Tonificar, Tratar, Hidratar, Proteger/Sellar), usando las fotos de producto proporcionadas junto al paso correspondiente, con una breve descripción de 1 línea por paso.
+    build: (p) => `Diseña una infografía de "Rutina Facial" de skincare en español, estilo editorial de marca de dermocosmética ${p.brand}, fondo blanco elegante con acentos azul marino. Divide en dos bloques claramente marcados: "RUTINA DE DÍA" (ícono de sol) y "RUTINA DE NOCHE" (ícono de luna), cada uno con pasos numerados del 1 al 5 (Limpiar, Tonificar, Tratar, Hidratar, Proteger/Sellar), usando las fotos de producto proporcionadas junto al paso correspondiente, con una breve descripción de 1 línea por paso.
 Público objetivo: ${p.audience || 'mujer adulta'}.
 Productos y orden de uso: ${p.details || '(usar los productos de las imágenes de referencia en un orden lógico de limpieza, tratamiento e hidratación)'}.
 Título: "${p.title || 'RUTINA FACIAL'}".
-Incluye un encabezado con foto de modelo con piel saludable (si hay una entre las referencias) y una franja inferior con los sellos de marca (Vegano, Cruelty Free, Sin Parabenos, Dermatológicamente probado) y el logo "DrMiz LAB". Resultado limpio, profesional, listo para imprimir o publicar.`
+Incluye un encabezado con foto de modelo con piel saludable (si hay una entre las referencias) y una franja inferior con los sellos de marca (Vegano, Cruelty Free, Sin Parabenos, Dermatológicamente probado). Resultado limpio, profesional, listo para imprimir o publicar.`
   },
   brochure: {
     label: 'Brochure / folleto comercial',
-    build: (p) => `Diseña un brochure comercial promocional en español para una marca de dermocosmética "DrMiz LAB Skin Products", diseño moderno y aspiracional, fondo claro con acentos en tonos nude/dorado y azul marino. Debe transmitir "ciencia, bienestar y resultados". Incluye un titular potente, subtítulo, 3-4 beneficios clave con íconos, las fotos de producto proporcionadas destacadas en composición atractiva con sombras suaves, y un llamado a la acción.
+    build: (p) => `Diseña un brochure comercial promocional en español para una marca de dermocosmética ${p.brand}, diseño moderno y aspiracional, fondo claro con acentos en tonos nude/dorado y azul marino. Debe transmitir "ciencia, bienestar y resultados". Incluye un titular potente, subtítulo, 3-4 beneficios clave con íconos, las fotos de producto proporcionadas destacadas en composición atractiva con sombras suaves, y un llamado a la acción.
 Tema / propósito del brochure: ${p.title || 'Tratamiento de skincare'}.
 Detalles a resaltar: ${p.details || '(usar los beneficios visibles en las imágenes de referencia)'}.
-Incluye el logo "DrMiz LAB" y la línea "CIENCIA · CALIDAD · RESULTADOS" en la parte inferior junto a los sellos de marca (Vegano, Cruelty Free, Sin Parabenos, Dermatológicamente probado). Resultado editorial, de alta calidad, listo para imprimir o compartir en redes.`
+Incluye la línea "CIENCIA · CALIDAD · RESULTADOS" en la parte inferior junto a los sellos de marca (Vegano, Cruelty Free, Sin Parabenos, Dermatológicamente probado). Resultado editorial, de alta calidad, listo para imprimir o compartir en redes.`
+  },
+  diptico: {
+    label: 'Díptico (2 productos)',
+    build: (p) => `Diseña un díptico promocional en español de dos paneles verticales de igual tamaño, lado a lado, separados por una línea divisoria sutil, para una marca de dermocosmética ${p.brand}, estilo editorial limpio, fondo claro, tipografía elegante en tonos azul marino y rosa/nude, coherente entre ambos paneles.
+
+PANEL IZQUIERDO — Producto A: "${p.dipticoATitle || 'Producto A'}".
+Detalles: ${p.dipticoADetails || '(usar la información visible en las imágenes de referencia de este producto)'}.
+Incluye foto del producto, nombre, beneficios principales y modo de uso.
+
+PANEL DERECHO — Producto B: "${p.dipticoBTitle || 'Producto B'}".
+Detalles: ${p.dipticoBDetails || '(usar la información visible en las imágenes de referencia de este producto)'}.
+Incluye foto del producto, nombre, beneficios principales y modo de uso.
+
+Título general del díptico: "${p.title || 'Nuestros Tratamientos'}".
+Usa las fotos de producto proporcionadas como referencia exacta de packaging (colores, etiquetas, forma del envase), asignando cada foto al panel del producto que corresponda. Agrega una franja inferior compartida con los sellos de marca: Vegano, Sin Parabenos, Cruelty Free, Dermatológicamente probado. Resultado limpio, editorial, listo para imprimir en alta resolución como díptico plegable.`
   }
 };
+
+function brandLabelFromCheckboxes() {
+  const lab = document.getElementById('brochure-logo-lab').checked;
+  const farma = document.getElementById('brochure-logo-farma').checked;
+  if (lab && farma) return 'DrMiz LAB y DrMiz Farma';
+  if (farma) return 'DrMiz Farma';
+  return 'DrMiz LAB';
+}
+
+function toggleBrochureTypeFields() {
+  const type = getChipValue('cg-brochure-type') || 'ficha';
+  document.getElementById('brochure-diptico-group').hidden = (type !== 'diptico');
+  document.getElementById('brochure-details-group').hidden = (type === 'diptico');
+}
 
 function initBrochureUpload() {
   const input = document.getElementById('brochure-ref-input');
@@ -1493,6 +1522,11 @@ function initBrochureUpload() {
     e.preventDefault(); area.style.borderColor = '';
     if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
   });
+
+  document.querySelectorAll('#cg-brochure-type .chip').forEach(chip => {
+    chip.addEventListener('click', toggleBrochureTypeFields);
+  });
+  toggleBrochureTypeFields();
 }
 
 function renderBrochureRefGrid() {
@@ -1550,7 +1584,12 @@ function buildBrochurePrompt() {
   const params = {
     title: document.getElementById('brochure-title').value.trim(),
     details: document.getElementById('brochure-details').value.trim(),
-    audience: document.getElementById('brochure-audience')?.value.trim()
+    audience: document.getElementById('brochure-audience')?.value.trim(),
+    brand: brandLabelFromCheckboxes(),
+    dipticoATitle: document.getElementById('brochure-diptico-a-title')?.value.trim(),
+    dipticoADetails: document.getElementById('brochure-diptico-a-details')?.value.trim(),
+    dipticoBTitle: document.getElementById('brochure-diptico-b-title')?.value.trim(),
+    dipticoBDetails: document.getElementById('brochure-diptico-b-details')?.value.trim()
   };
   let prompt = tpl.build(params);
   if (custom) prompt += `\nInstrucciones adicionales: ${custom}`;

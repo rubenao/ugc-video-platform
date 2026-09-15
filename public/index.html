@@ -79,6 +79,13 @@
           <span class="nav-sub" id="nav-sub-8">Gemini Omni Flash Ext · ApiMart</span>
         </div>
       </button>
+      <button class="nav-item" data-tab="9" onclick="goToTab(9)">
+        <div class="nav-num" id="nav-num-9"><span>9</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">🗂️</span><span class="nav-title">Folletos & Rutinas</span></div>
+          <span class="nav-sub" id="nav-sub-9">Fichas técnicas y skincare · ApiMart</span>
+        </div>
+      </button>
     </nav>
 
     <!-- Progress summary -->
@@ -990,6 +997,106 @@ Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nun
       </div>
 
     </div><!-- /tab-8 -->
+
+    <!-- ===== TAB 9: FOLLETOS, BROCHURES Y RUTINAS DE SKINCARE (ApiMart GPT-Image-2) ===== -->
+    <div id="step-9" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">🗂️</div>
+        <div>
+          <h2>Folletos, Brochures & Rutinas</h2>
+          <p>Sube fotos de tus productos DrMiz Lab y genera fichas técnicas, brochures comerciales o infografías de rutina de skincare con IA.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de material</label>
+        <div class="chip-group" id="cg-brochure-type">
+          <button class="chip selected" data-value="ficha">📋 Ficha técnica de productos</button>
+          <button class="chip" data-value="rutina">🌙 Rutina de skincare</button>
+          <button class="chip" data-value="brochure">✨ Brochure comercial</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Fotos de producto de referencia <span class="label-optional">(hasta 15 · incluye packaging, logo, foto de modelo si tienes)</span></label>
+        <label class="upload-area" id="brochure-ref-area">
+          <input type="file" id="brochure-ref-input" accept="image/*" multiple hidden>
+          <div class="upload-placeholder" id="brochure-ref-placeholder">
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-text">
+              <strong>Subir fotos de producto</strong>
+              <span>JPG, PNG, WEBP · selecciona varias a la vez · máx 15MB c/u</span>
+            </div>
+          </div>
+        </label>
+        <div class="img-ref-grid" id="brochure-ref-grid"></div>
+        <div class="char-info"><span id="brochure-ref-count">0</span> / 15 imágenes seleccionadas</div>
+      </div>
+
+      <div class="form-group">
+        <label>Título del material *</label>
+        <input type="text" id="brochure-title" class="text-input" placeholder="Ej: Tratamientos Corporales Folio 150 / Rutina Facial Mujer">
+      </div>
+
+      <div class="form-group">
+        <label>Público objetivo <span class="label-optional">(solo aplica a rutinas)</span></label>
+        <input type="text" id="brochure-audience" class="text-input" placeholder="Ej: mujer adulta, piel mixta">
+      </div>
+
+      <div class="form-group">
+        <label>Detalles de productos / beneficios <span class="label-optional">(opcional)</span></label>
+        <textarea id="brochure-details" rows="4" placeholder="Ej: RC1 Cream - crema hidratante reductiva con centella asiática y vitamina B5, favorece la elasticidad de la piel..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Instrucciones adicionales <span class="label-optional">(opcional)</span></label>
+        <textarea id="brochure-prompt-extra" rows="2" placeholder="Ej: usa fondo rosa pastel, incluye orden sugerido del protocolo al final..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Formato</label>
+        <div class="chip-group" id="cg-brochure-size">
+          <button class="chip" data-value="1:1">◻ 1:1</button>
+          <button class="chip selected" data-value="3:4">📄 3:4 (vertical)</button>
+          <button class="chip" data-value="4:3">🖼 4:3</button>
+          <button class="chip" data-value="9:16">📱 9:16</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Resolución</label>
+        <div class="chip-group" id="cg-brochure-res">
+          <button class="chip" data-value="1k">1K</button>
+          <button class="chip" data-value="2k">2K</button>
+          <button class="chip selected" data-value="4k">4K</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-brochure-btn" onclick="generateBrochure()">
+        <span>🗂️</span> Generar Folleto
+      </button>
+
+      <div id="brochure-progress" class="progress-card" hidden>
+        <div class="progress-spinner"></div>
+        <p id="brochure-progress-text">Enviando a GPT-Image-2...</p>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
+
+      <div id="brochure-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Folleto generado</h3>
+          <button class="btn btn-sm" onclick="generateBrochure()">↺ Regenerar</button>
+        </div>
+        <div class="avatar-img-wrap">
+          <img id="brochure-output" src="" alt="Folleto generado">
+        </div>
+        <div class="result-footer">
+          <button class="btn btn-primary" onclick="downloadAsset(state.brochure.imageUrl, 'folleto-drmizlab.png')">⬇ Descargar</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-9 -->
 
   </main>
 </div>

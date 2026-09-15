@@ -9,10 +9,11 @@ const state = {
   social: { imageUrl: null, styleAnalysis: '' },
   image:  { imageUrl: null, refFiles: [] },
   voiceClone: { sampleFiles: [] },
-  videoGen: { videoUrl: null, refFiles: [], sourceVideoFile: null }
+  videoGen: { videoUrl: null, refFiles: [], sourceVideoFile: null },
+  brochure: { imageUrl: null, refFiles: [] }
 };
 
-const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen', 7: 'Clonar Voz', 8: 'Generar Video' };
+const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen', 7: 'Clonar Voz', 8: 'Generar Video', 9: 'Folletos & Rutinas' };
 
 // ============================================================
 // Init
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initImageRefUpload();
   initVoiceCloneUpload();
   initVideoGenUploads();
+  initBrochureUpload();
   goToTab(1);
 });
 
@@ -1436,4 +1438,154 @@ function showVideoGenResult(videoUrl) {
   markTabDone(8);
   setNavSub(8, 'Video listo ✓');
   toast('¡Video generado! 🎉', 'success');
+}
+
+// ============================================================
+// TAB 9: FOLLETOS, BROCHURES Y RUTINAS DE SKINCARE (ApiMart GPT-Image-2)
+// ============================================================
+const MAX_BROCHURE_IMAGES = 15;
+
+const BROCHURE_TEMPLATES = {
+  ficha: {
+    label: 'Ficha técnica de productos',
+    build: (p) => `Diseña una ficha técnica / catálogo de productos de skincare en español, estilo infografía profesional de marca de dermocosmética, formato tipo "DrMiz LAB Skin Products". Fondo blanco/beige claro y limpio, tarjetas en grid con esquinas redondeadas, tipografía elegante en tonos azul marino y rosa/nude. Incluye para cada producto: nombre, código, presentación, lista de activos destacados con íconos, lista de beneficios con checks, modo de uso, y un ícono circular de tipo de piel/pH. Usa las fotos de producto proporcionadas como referencia exacta de packaging (colores, etiquetas, forma del envase) e insértalas en cada tarjeta.
+Productos / información a incluir: ${p.details || '(usar la información visible en las imágenes de referencia)'}.
+Título del folleto: "${p.title || 'FICHA TÉCNICA DE PRODUCTOS'}".
+Agrega el logo "DrMiz LAB" en la parte superior y una franja inferior con los sellos: Vegano, Sin Parabenos, Cruelty Free, Dermatológicamente probado. Resultado limpio, editorial, listo para imprimir en alta resolución.`
+  },
+  rutina: {
+    label: 'Rutina de skincare (día/noche)',
+    build: (p) => `Diseña una infografía de "Rutina Facial" de skincare en español, estilo editorial de marca de dermocosmética "DrMiz LAB Skin Products", fondo blanco elegante con acentos azul marino. Divide en dos bloques claramente marcados: "RUTINA DE DÍA" (ícono de sol) y "RUTINA DE NOCHE" (ícono de luna), cada uno con pasos numerados del 1 al 5 (Limpiar, Tonificar, Tratar, Hidratar, Proteger/Sellar), usando las fotos de producto proporcionadas junto al paso correspondiente, con una breve descripción de 1 línea por paso.
+Público objetivo: ${p.audience || 'mujer adulta'}.
+Productos y orden de uso: ${p.details || '(usar los productos de las imágenes de referencia en un orden lógico de limpieza, tratamiento e hidratación)'}.
+Título: "${p.title || 'RUTINA FACIAL'}".
+Incluye un encabezado con foto de modelo con piel saludable (si hay una entre las referencias) y una franja inferior con los sellos de marca (Vegano, Cruelty Free, Sin Parabenos, Dermatológicamente probado) y el logo "DrMiz LAB". Resultado limpio, profesional, listo para imprimir o publicar.`
+  },
+  brochure: {
+    label: 'Brochure / folleto comercial',
+    build: (p) => `Diseña un brochure comercial promocional en español para una marca de dermocosmética "DrMiz LAB Skin Products", diseño moderno y aspiracional, fondo claro con acentos en tonos nude/dorado y azul marino. Debe transmitir "ciencia, bienestar y resultados". Incluye un titular potente, subtítulo, 3-4 beneficios clave con íconos, las fotos de producto proporcionadas destacadas en composición atractiva con sombras suaves, y un llamado a la acción.
+Tema / propósito del brochure: ${p.title || 'Tratamiento de skincare'}.
+Detalles a resaltar: ${p.details || '(usar los beneficios visibles en las imágenes de referencia)'}.
+Incluye el logo "DrMiz LAB" y la línea "CIENCIA · CALIDAD · RESULTADOS" en la parte inferior junto a los sellos de marca (Vegano, Cruelty Free, Sin Parabenos, Dermatológicamente probado). Resultado editorial, de alta calidad, listo para imprimir o compartir en redes.`
+  }
+};
+
+function initBrochureUpload() {
+  const input = document.getElementById('brochure-ref-input');
+  const area  = document.getElementById('brochure-ref-area');
+
+  function addFiles(fileList) {
+    const incoming = [...fileList].filter(f => f.type.startsWith('image/'));
+    for (const f of incoming) {
+      if (state.brochure.refFiles.length >= MAX_BROCHURE_IMAGES) {
+        toast(`Máximo ${MAX_BROCHURE_IMAGES} imágenes`);
+        break;
+      }
+      state.brochure.refFiles.push(f);
+    }
+    renderBrochureRefGrid();
+  }
+
+  input.addEventListener('change', e => { addFiles(e.target.files); input.value = ''; });
+  area.addEventListener('dragover',  e => { e.preventDefault(); area.style.borderColor = 'var(--primary)'; });
+  area.addEventListener('dragleave', () => { area.style.borderColor = ''; });
+  area.addEventListener('drop', e => {
+    e.preventDefault(); area.style.borderColor = '';
+    if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+}
+
+function renderBrochureRefGrid() {
+  const grid = document.getElementById('brochure-ref-grid');
+  grid.innerHTML = '';
+  state.brochure.refFiles.forEach((file, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'img-ref-thumb';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'img-ref-del';
+    del.textContent = '×';
+    del.onclick = () => { state.brochure.refFiles.splice(idx, 1); renderBrochureRefGrid(); };
+    cell.appendChild(img);
+    cell.appendChild(del);
+    grid.appendChild(cell);
+  });
+  document.getElementById('brochure-ref-count').textContent = state.brochure.refFiles.length;
+}
+
+function buildBrochurePrompt() {
+  const type = getChipValue('cg-brochure-type') || 'ficha';
+  const tpl = BROCHURE_TEMPLATES[type] || BROCHURE_TEMPLATES.ficha;
+  const custom = document.getElementById('brochure-prompt-extra')?.value.trim();
+  const params = {
+    title: document.getElementById('brochure-title').value.trim(),
+    details: document.getElementById('brochure-details').value.trim(),
+    audience: document.getElementById('brochure-audience')?.value.trim()
+  };
+  let prompt = tpl.build(params);
+  if (custom) prompt += `\nInstrucciones adicionales: ${custom}`;
+  return prompt;
+}
+
+async function generateBrochure() {
+  if (state.brochure.refFiles.length === 0) {
+    toast('Sube al menos 1 foto de producto de referencia');
+    return;
+  }
+
+  const btn = document.getElementById('gen-brochure-btn');
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Generando...';
+  document.getElementById('brochure-result').hidden = true;
+  document.getElementById('brochure-progress').hidden = false;
+  document.getElementById('brochure-progress-text').textContent = 'Enviando a GPT-Image-2...';
+
+  try {
+    const prompt = buildBrochurePrompt();
+    const fd = new FormData();
+    fd.append('prompt', prompt);
+    fd.append('size', getChipValue('cg-brochure-size') || '3:4');
+    fd.append('resolution', getChipValue('cg-brochure-res') || '4k');
+    state.brochure.refFiles.forEach(f => fd.append('refImages', f));
+
+    const res  = await fetch('/api/images/generate', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error generando el folleto');
+
+    await pollBrochure(data.task_id);
+  } catch (err) {
+    toast(err.message);
+    document.getElementById('brochure-progress').hidden = true;
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<span>🗂️</span> Generar Folleto';
+  }
+}
+
+async function pollBrochure(taskId) {
+  const statusEl = document.getElementById('brochure-progress-text');
+  for (let i = 0; i < 100; i++) {
+    await sleep(3000);
+    const res  = await fetch(`/api/images/status/${taskId}`);
+    const data = await res.json();
+    if (typeof data.progress === 'number') statusEl.textContent = `Generando folleto... ${data.progress}%`;
+    if (data.status === 'succeeded' && data.output?.length) {
+      showBrochureResult(data.output[0]);
+      return;
+    }
+    if (data.status === 'failed') throw new Error(data.error || 'Falló la generación del folleto');
+  }
+  throw new Error('Tiempo de espera agotado');
+}
+
+function showBrochureResult(imageUrl) {
+  state.brochure.imageUrl = imageUrl;
+  document.getElementById('brochure-progress').hidden = true;
+  document.getElementById('brochure-output').src = imageUrl;
+  const card = document.getElementById('brochure-result');
+  card.hidden = false;
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  markTabDone(9);
+  setNavSub(9, 'Folleto listo ✓');
+  toast('¡Folleto generado! 🎉', 'success');
 }

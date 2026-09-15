@@ -1575,6 +1575,8 @@ async function generateBrochure() {
     fd.append('prompt', prompt);
     fd.append('size', getChipValue('cg-brochure-size') || '3:4');
     fd.append('resolution', getChipValue('cg-brochure-res') || '4k');
+    fd.append('logoLab', document.getElementById('brochure-logo-lab').checked);
+    fd.append('logoFarma', document.getElementById('brochure-logo-farma').checked);
     state.brochure.refFiles.forEach(f => fd.append('refImages', f));
 
     const res  = await fetch('/api/brochure/generate', { method: 'POST', body: fd });

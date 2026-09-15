@@ -985,6 +985,30 @@ input[type="range"] { width: 100%; accent-color: var(--primary); margin-top: 6px
   font-weight: 600;
 }
 
+/* Checkboxes */
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition: all .15s;
+}
+.checkbox-item:hover { border-color: var(--primary-l); }
+.checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
 /* Skin swatches */
 .skin-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .skin-swatch {

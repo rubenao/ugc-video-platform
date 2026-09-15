@@ -1096,13 +1096,13 @@ app.get('/api/videos/status/:id', async (req, res) => {
 });
 
 // ---------- BROCHURE GENERATION (ApiMart · GPT-Image-2) ----------
-// Igual que /api/images/generate, pero siempre adjunta los logos oficiales
-// de DrMiz LAB y DrMiz Farma como referencia adicional para que la IA los
-// incluya en el diseño.
-const BRAND_LOGOS = [
-  { path: path.join(__dirname, 'public', 'assets', 'logos', 'drmizlab-logo.png'), name: 'DrMiz LAB' },
-  { path: path.join(__dirname, 'public', 'assets', 'logos', 'drmizfarma-logo.png'), name: 'DrMiz Farma' }
-];
+// Igual que /api/images/generate, pero opcionalmente adjunta los logos
+// oficiales de DrMiz LAB y/o DrMiz Farma como referencia adicional para
+// que la IA los incluya en el diseño, según lo que el usuario marque.
+const BRAND_LOGOS = {
+  lab: { path: path.join(__dirname, 'public', 'assets', 'logos', 'drmizlab-logo.png'), name: 'DrMiz LAB' },
+  farma: { path: path.join(__dirname, 'public', 'assets', 'logos', 'drmizfarma-logo.png'), name: 'DrMiz Farma' }
+};
 
 app.post('/api/brochure/generate', upload.array('refImages', 13), async (req, res) => {
   const files = req.files || [];
@@ -1110,7 +1110,9 @@ app.post('/api/brochure/generate', upload.array('refImages', 13), async (req, re
     prompt,
     size = '3:4',
     resolution = '4k',
-    n = 1
+    n = 1,
+    logoLab,
+    logoFarma
   } = req.body;
 
   if (!process.env.APIMART_API_KEY) {
@@ -1123,13 +1125,16 @@ app.post('/api/brochure/generate', upload.array('refImages', 13), async (req, re
   }
 
   try {
-    const logoUrls = BRAND_LOGOS
-      .filter(l => fs.existsSync(l.path))
-      .map(l => toDataURI(l.path));
+    const selectedLogos = [
+      ...(logoLab === 'true' ? [BRAND_LOGOS.lab] : []),
+      ...(logoFarma === 'true' ? [BRAND_LOGOS.farma] : [])
+    ].filter(l => fs.existsSync(l.path));
+
+    const logoUrls = selectedLogos.map(l => toDataURI(l.path));
     const imageUrls = [...files.map(f => toDataURI(f.path)), ...logoUrls];
 
-    const logoNote = logoUrls.length
-      ? '\nIncluye ambos logos de marca proporcionados entre las imágenes de referencia (DrMiz LAB y DrMiz Farma) reproducidos exactamente como se ven, colocados de forma discreta y profesional (ej. en el encabezado o en la franja inferior junto a los sellos de marca), sin deformarlos ni recolorearlos.'
+    const logoNote = selectedLogos.length
+      ? `\nIncluye ${selectedLogos.length > 1 ? 'los logos de marca proporcionados' : 'el logo de marca proporcionado'} entre las imágenes de referencia (${selectedLogos.map(l => l.name).join(' y ')}) reproducido${selectedLogos.length > 1 ? 's' : ''} exactamente como se ve${selectedLogos.length > 1 ? 'n' : ''}, colocado${selectedLogos.length > 1 ? 's' : ''} de forma discreta y profesional (ej. en el encabezado o en la franja inferior junto a los sellos de marca), sin deformarlo${selectedLogos.length > 1 ? 's' : ''} ni recolorearlo${selectedLogos.length > 1 ? 's' : ''}.`
       : '';
 
     const body = {

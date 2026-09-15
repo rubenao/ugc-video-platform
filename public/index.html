@@ -1045,7 +1045,15 @@ Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nun
       </div>
 
       <div class="form-group">
-        <label>Detalles de productos / beneficios <span class="label-optional">(opcional)</span></label>
+        <label>URL(s) de producto en drmiz-lab.mx <span class="label-optional">(opcional — una por línea, extrae beneficios/modo de uso automáticamente)</span></label>
+        <textarea id="brochure-urls" rows="2" placeholder="https://drmiz-lab.mx/products/rc1-cream&#10;https://drmiz-lab.mx/products/ac-gel"></textarea>
+        <button class="btn btn-secondary btn-block" id="brochure-research-btn" onclick="researchBrochureProducts()" style="margin-top:.5rem">
+          <span>🔍</span> Investigar producto(s) con IA
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label>Detalles de productos / beneficios <span class="label-optional">(opcional — se autocompleta al investigar, también puedes editarlo)</span></label>
         <textarea id="brochure-details" rows="4" placeholder="Ej: RC1 Cream - crema hidratante reductiva con centella asiática y vitamina B5, favorece la elasticidad de la piel..."></textarea>
       </div>
 

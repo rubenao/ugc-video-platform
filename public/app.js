@@ -1515,6 +1515,34 @@ function renderBrochureRefGrid() {
   document.getElementById('brochure-ref-count').textContent = state.brochure.refFiles.length;
 }
 
+async function researchBrochureProducts() {
+  const urlsRaw = document.getElementById('brochure-urls').value.trim();
+  if (!urlsRaw) { toast('Pega al menos una URL de producto'); return; }
+  const urls = urlsRaw.split(/\r?\n/).map(u => u.trim()).filter(Boolean);
+
+  const btn = document.getElementById('brochure-research-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Investigando...';
+
+  try {
+    const res = await fetch('/api/brochure/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al investigar producto(s)');
+
+    document.getElementById('brochure-details').value = data.productInfo;
+    toast('Información de producto(s) extraída ✓', 'success');
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔍</span> Investigar producto(s) con IA';
+  }
+}
+
 function buildBrochurePrompt() {
   const type = getChipValue('cg-brochure-type') || 'ficha';
   const tpl = BROCHURE_TEMPLATES[type] || BROCHURE_TEMPLATES.ficha;

@@ -1095,6 +1095,81 @@ app.get('/api/videos/status/:id', async (req, res) => {
   }
 });
 
+// ---------- BROCHURE: RESEARCH PRODUCT(S) FROM URL(S) ----------
+// Extrae de una o varias URLs de producto (ej. drmiz-lab.mx) info estructurada:
+// nombre, código, presentación, activos, beneficios, modo de uso, tipo de piel/pH.
+app.post('/api/brochure/research', async (req, res) => {
+  const { urls } = req.body;
+  const urlList = (Array.isArray(urls) ? urls : String(urls || '').split(/\r?\n/))
+    .map(u => u.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  if (!urlList.length) return res.status(400).json({ error: 'Debes proporcionar al menos una URL de producto' });
+
+  const pages = [];
+  for (const url of urlList) {
+    try {
+      const pageRes = await axios.get(url, {
+        timeout: 10000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; bot/1.0)' },
+        maxContentLength: 500000
+      });
+      const text = pageRes.data
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 3000);
+      pages.push({ url, text });
+    } catch (err) {
+      console.warn('Brochure research URL fetch warning:', url, err.message);
+      pages.push({ url, text: '' });
+    }
+  }
+
+  if (!pages.some(p => p.text)) {
+    return res.status(400).json({ error: 'No se pudo leer contenido de ninguna de las URLs proporcionadas' });
+  }
+
+  if (!openaiClient) {
+    const fallback = pages
+      .map(p => `Producto (${p.url}):\n${p.text ? p.text.slice(0, 400) : '(sin contenido, completar manualmente)'}`)
+      .join('\n\n');
+    return res.json({ productInfo: fallback });
+  }
+
+  try {
+    const userMsg = `Extrae información de producto de skincare/dermocosmética a partir del contenido de estas páginas web, para usarla en una ficha técnica, brochure o rutina de skincare.
+
+${pages.map((p, i) => `--- Producto ${i + 1} (${p.url}) ---\n${p.text || '(no se pudo leer el contenido de esta URL)'}`).join('\n\n')}
+
+Para cada producto, devuelve en español, en formato de lista clara y compacta (sin markdown de encabezados, listo para pegar en un campo de texto):
+- Nombre del producto
+- Presentación (tamaño/ml/g si se menciona)
+- Activos/ingredientes destacados
+- Beneficios principales (máx 5, concretos)
+- Modo de uso
+- Tipo de piel recomendado (si se menciona)
+
+Sé conciso y factual, usa solo la información disponible en el contenido, no inventes datos que no aparezcan.`;
+
+    const completion = await openaiClient.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 900,
+      messages: [
+        { role: 'system', content: 'Eres un experto en dermocosmética que extrae y estructura fichas técnicas de productos de skincare a partir de contenido web, de forma precisa y sin inventar datos.' },
+        { role: 'user', content: userMsg }
+      ]
+    });
+    res.json({ productInfo: completion.choices[0].message.content.trim() });
+  } catch (err) {
+    console.error('Brochure research error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n🎬 UGC Video Creator corriendo en http://localhost:${PORT}\n`);
 });

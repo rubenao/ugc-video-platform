@@ -10,10 +10,11 @@ const state = {
   image:  { imageUrl: null, refFiles: [] },
   voiceClone: { sampleFiles: [] },
   videoGen: { videoUrl: null, refFiles: [], sourceVideoFile: null },
-  brochure: { imageUrl: null, refFiles: [] }
+  brochure: { imageUrl: null, refFiles: [] },
+  dubbing: { file: null, resultUrl: null, resultFilename: null, mediaType: null, targetLang: null }
 };
 
-const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen', 7: 'Clonar Voz', 8: 'Generar Video', 9: 'Folletos & Rutinas' };
+const TAB_NAMES = { 1: 'Crear Avatar', 2: 'Avatar UGC', 3: 'Audio', 4: 'Video', 5: 'Post Social', 6: 'Generar Imagen', 7: 'Clonar Voz', 8: 'Generar Video', 9: 'Folletos & Rutinas', 10: 'Doblaje' };
 
 // ============================================================
 // Init
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initVoiceCloneUpload();
   initVideoGenUploads();
   initBrochureUpload();
+  initDubbing();
   goToTab(1);
 });
 
@@ -220,7 +222,7 @@ async function generateCreatedAvatar() {
   const finalPrompt = document.getElementById('avatar-create-prompt').value.trim();
   const btn = document.getElementById('gen-create-btn');
   btn.disabled = true; btn.innerHTML = '<span>⏳</span> Generando avatar...';
-  loading('Generando avatar con Google Nano Banana 2...');
+  loading('Generando avatar con GPT-Image-2...');
 
   try {
     const res  = await fetch('/api/avatar/create', {
@@ -231,12 +233,8 @@ async function generateCreatedAvatar() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error generando avatar');
 
-    if (data.output) {
-      setCreatedAvatarResult(data.output);
-    } else if (data.prediction_id) {
-      loading('Esperando resultado de Replicate...');
-      await pollReplicate(data.prediction_id, url => setCreatedAvatarResult(url));
-    }
+    loading('Esperando resultado de GPT-Image-2...');
+    await pollApiMartImage(data.task_id, setCreatedAvatarResult);
   } catch (err) {
     toast(err.message);
   } finally {
@@ -336,7 +334,7 @@ function useCreatedAvatarDirect() {
 }
 
 // ============================================================
-// TAB 2: AVATAR UGC (FLUX Kontext)
+// TAB 2: AVATAR UGC (GPT-Image-2)
 // ============================================================
 async function generateAvatar() {
   const personInput  = document.getElementById('person-image');
@@ -352,7 +350,7 @@ async function generateAvatar() {
 
   const btn = document.getElementById('gen-avatar-btn');
   btn.disabled = true; btn.innerHTML = '<span>⏳</span> Generando...';
-  loading('Generando avatar UGC con Google Nano Banana 2...');
+  loading('Generando avatar UGC con GPT-Image-2...');
 
   try {
     const fd = new FormData();
@@ -369,12 +367,8 @@ async function generateAvatar() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error generando avatar');
 
-    if (data.output) {
-      setAvatarResult(data.output);
-    } else if (data.prediction_id) {
-      loading('Esperando resultado de Replicate...');
-      await pollReplicate(data.prediction_id, url => setAvatarResult(url));
-    }
+    loading('Esperando resultado de GPT-Image-2...');
+    await pollApiMartImage(data.task_id, setAvatarResult);
   } catch (err) {
     toast(err.message);
   } finally {
@@ -823,17 +817,17 @@ function showVideoResult(videoUrl) {
 }
 
 // ============================================================
-// Replicate polling helper
+// ApiMart image polling helper (GPT-Image-2)
 // ============================================================
-async function pollReplicate(predId, onSuccess) {
-  for (let i = 0; i < 60; i++) {
+async function pollApiMartImage(taskId, onSuccess) {
+  for (let i = 0; i < 100; i++) {
     await sleep(3000);
-    const res  = await fetch(`/api/replicate/status/${predId}`);
+    const res  = await fetch(`/api/images/status/${taskId}`);
     const data = await res.json();
-    if (data.status === 'succeeded' && data.output) { onSuccess(data.output); return; }
-    if (data.status === 'failed') throw new Error(data.error || 'Falló en Replicate');
+    if (data.status === 'succeeded' && data.output?.length) { onSuccess(data.output[0]); return; }
+    if (data.status === 'failed') throw new Error(data.error || 'Falló la generación de la imagen');
   }
-  throw new Error('Tiempo de espera agotado en Replicate');
+  throw new Error('Tiempo de espera agotado');
 }
 
 // ============================================================
@@ -987,7 +981,7 @@ async function generateSocialPost() {
     }
   }
 
-  loading('Generando foto profesional con Google Nano Banana 2...');
+  loading('Generando foto profesional con GPT-Image-2...');
 
   try {
     const fd = new FormData();
@@ -1006,12 +1000,8 @@ async function generateSocialPost() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error generando el post');
 
-    if (data.output) {
-      setSocialResult(data.output, data.caption, data.styleAnalysis);
-    } else if (data.prediction_id) {
-      loading('Esperando resultado de Replicate...');
-      await pollReplicate(data.prediction_id, url => setSocialResult(url, data.caption, data.styleAnalysis));
-    }
+    loading('Esperando resultado de GPT-Image-2...');
+    await pollApiMartImage(data.task_id, url => setSocialResult(url, data.caption, data.styleAnalysis));
   } catch (err) {
     toast(err.message);
   } finally {
@@ -1657,4 +1647,147 @@ function showBrochureResult(imageUrl) {
   markTabDone(9);
   setNavSub(9, 'Folleto listo ✓');
   toast('¡Folleto generado! 🎉', 'success');
+}
+
+// ============================================================
+// TAB 10: DOBLAJE (ElevenLabs Dubbing)
+// ============================================================
+const DUBBING_POLL_MS = 5000;
+const DUBBING_MAX_POLLS = 360; // ~30 min
+
+async function initDubbing() {
+  const input = document.getElementById('dubbing-input');
+  const area  = document.getElementById('dubbing-area');
+
+  function setFile(file) {
+    if (!file || !/^(audio|video)\//.test(file.type)) { toast('Sube un archivo de audio o video'); return; }
+    state.dubbing.file = file;
+    renderDubbingFile();
+  }
+
+  input.addEventListener('change', e => { setFile(e.target.files[0]); input.value = ''; });
+  area.addEventListener('dragover',  e => { e.preventDefault(); area.style.borderColor = 'var(--primary)'; });
+  area.addEventListener('dragleave', () => { area.style.borderColor = ''; });
+  area.addEventListener('drop', e => {
+    e.preventDefault(); area.style.borderColor = '';
+    setFile(e.dataTransfer.files[0]);
+  });
+
+  try {
+    const res  = await fetch('/api/dubbing/languages');
+    const data = await res.json();
+    document.getElementById('dubbing-target-lang').innerHTML = data.languages
+      .map(l => `<option value="${escapeHtml(l.code)}">${escapeHtml(l.label)}</option>`)
+      .join('');
+  } catch {
+    document.getElementById('dubbing-target-lang').innerHTML = '<option value="en">Inglés</option>';
+  }
+}
+
+function renderDubbingFile() {
+  const list = document.getElementById('dubbing-file');
+  list.innerHTML = '';
+  const file = state.dubbing.file;
+  if (!file) return;
+
+  const row = document.createElement('div');
+  row.className = 'voice-clone-file';
+  row.innerHTML = `
+    <span class="voice-clone-file-name">${escapeHtml(file.name)}</span>
+    <span class="voice-clone-file-size">${formatFileSize(file.size)}</span>
+  `;
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'voice-clone-file-del';
+  del.textContent = '×';
+  del.onclick = () => { state.dubbing.file = null; renderDubbingFile(); };
+  row.appendChild(del);
+  list.appendChild(row);
+}
+
+async function generateDubbing() {
+  if (!state.dubbing.file) { toast('Sube un audio o video para doblar'); return; }
+
+  const btn = document.getElementById('gen-dubbing-btn');
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> Doblando...';
+  document.getElementById('dubbing-result').hidden = true;
+  document.getElementById('dubbing-progress').hidden = false;
+  document.getElementById('dubbing-progress-text').textContent = 'Subiendo archivo a ElevenLabs...';
+
+  try {
+    const fd = new FormData();
+    fd.append('media', state.dubbing.file);
+    fd.append('target_lang', document.getElementById('dubbing-target-lang').value);
+    fd.append('source_lang', document.getElementById('dubbing-source-lang').value);
+    fd.append('drop_background_audio', document.getElementById('dubbing-drop-bg').checked);
+
+    const res  = await fetch('/api/dubbing/create', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error iniciando el doblaje');
+
+    await pollDubbing(data.dubbing_id, fd.get('target_lang'));
+  } catch (err) {
+    toast(err.message);
+    document.getElementById('dubbing-progress').hidden = true;
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<span>🌐</span> Doblar';
+  }
+}
+
+async function pollDubbing(dubbingId, targetLang) {
+  const statusEl = document.getElementById('dubbing-progress-text');
+  statusEl.textContent = 'Doblando... esto puede tardar unos minutos';
+
+  for (let i = 0; i < DUBBING_MAX_POLLS; i++) {
+    await sleep(DUBBING_POLL_MS);
+    const res  = await fetch(`/api/dubbing/status/${encodeURIComponent(dubbingId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error consultando el doblaje');
+
+    if (data.status === 'failed') throw new Error(data.error || 'Falló el doblaje');
+    if (data.status === 'succeeded') {
+      statusEl.textContent = 'Descargando resultado...';
+      const r = await fetch(`/api/dubbing/${encodeURIComponent(dubbingId)}/result/${encodeURIComponent(targetLang)}`);
+      const result = await r.json();
+      if (!r.ok) throw new Error(result.error || 'Error descargando el doblaje');
+      showDubbingResult(result, targetLang);
+      return;
+    }
+  }
+  throw new Error('Tiempo de espera agotado');
+}
+
+function showDubbingResult({ url, filename, media_type }, targetLang) {
+  state.dubbing.resultUrl      = url;
+  state.dubbing.resultFilename = filename;
+  state.dubbing.mediaType      = media_type;
+  state.dubbing.targetLang     = targetLang;
+
+  const audio = document.getElementById('dubbing-audio');
+  const video = document.getElementById('dubbing-video');
+  audio.hidden = media_type !== 'audio';
+  video.hidden = media_type !== 'video';
+  (media_type === 'video' ? video : audio).src = url;
+  document.getElementById('dubbing-use-btn').hidden = media_type !== 'audio';
+
+  document.getElementById('dubbing-progress').hidden = true;
+  const card = document.getElementById('dubbing-result');
+  card.hidden = false;
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  markTabDone(10);
+  setNavSub(10, 'Doblaje listo ✓');
+  toast('¡Doblaje listo! 🎉', 'success');
+}
+
+function downloadDubbing() {
+  const ext = state.dubbing.mediaType === 'video' ? 'mp4' : 'mp3';
+  downloadAsset(state.dubbing.resultUrl, `doblaje-${state.dubbing.targetLang || 'en'}.${ext}`);
+}
+
+// Reutiliza el audio doblado como audio del video talking-head (Tab 4).
+function useDubbedAudio() {
+  if (state.dubbing.mediaType !== 'audio') return;
+  state.audio.audioUrl      = state.dubbing.resultUrl;
+  state.audio.audioFilename = state.dubbing.resultFilename;
+  goToTab(4);
 }

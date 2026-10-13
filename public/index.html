@@ -86,6 +86,13 @@
           <span class="nav-sub" id="nav-sub-9">Fichas técnicas y skincare · ApiMart</span>
         </div>
       </button>
+      <button class="nav-item" data-tab="10" onclick="goToTab(10)">
+        <div class="nav-num" id="nav-num-10"><span>10</span></div>
+        <div class="nav-body">
+          <div class="nav-row"><span class="nav-icon">🌐</span><span class="nav-title">Doblaje</span></div>
+          <span class="nav-sub" id="nav-sub-10">Tu voz en otro idioma · ElevenLabs</span>
+        </div>
+      </button>
     </nav>
 
     <!-- Progress summary -->
@@ -383,7 +390,7 @@
           <button class="hint-btn" onclick="setPrompt('the same person is now sitting casually holding the product on their lap, relaxed natural pose, lifestyle UGC style')">🛋️ Pose relajada</button>
         </div>
         <div class="prompt-tip">
-          💡 <strong>Tip:</strong> FLUX Kontext mantiene exactamente la misma persona de la foto. Describe solo lo que quieres agregar o cambiar.
+          💡 <strong>Tip:</strong> GPT-Image-2 intenta conservar el rostro de la persona de la foto. Describe solo lo que quieres agregar o cambiar.
         </div>
       </div>
 
@@ -1131,6 +1138,80 @@ Ej: 'Chicos, llevo dos semanas usando este producto y la diferencia es REAL. Nun
       </div>
 
     </div><!-- /tab-9 -->
+
+    <!-- ===== TAB 10: DOBLAJE (ElevenLabs Dubbing) ===== -->
+    <div id="step-10" class="tab-panel">
+
+      <div class="tab-header">
+        <div class="tab-header-icon">🌐</div>
+        <div>
+          <h2>Doblaje a otro idioma</h2>
+          <p>Sube un audio o video con tu voz y ElevenLabs lo doblará a otro idioma conservando tu voz.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Audio o video original *</label>
+        <label class="upload-area" id="dubbing-area">
+          <input type="file" id="dubbing-input" accept="audio/*,video/*" hidden>
+          <div class="upload-placeholder" id="dubbing-placeholder">
+            <div class="upload-icon">🎙️</div>
+            <div class="upload-text">
+              <strong>Subir audio o video</strong>
+              <span>MP3, WAV, M4A, MP4, MOV... con tu voz hablando</span>
+            </div>
+          </div>
+        </label>
+        <div id="dubbing-file" class="voice-clone-files"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Idioma destino</label>
+        <select id="dubbing-target-lang"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Idioma original <span class="label-optional">(opcional, se detecta automáticamente)</span></label>
+        <select id="dubbing-source-lang">
+          <option value="auto">Detectar automáticamente</option>
+          <option value="es">Español</option>
+          <option value="en">Inglés</option>
+          <option value="pt">Portugués</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="dubbing-drop-bg">
+          Eliminar audio de fondo <span class="label-optional">(recomendado si solo hablas tú, sin música)</span>
+        </label>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="gen-dubbing-btn" onclick="generateDubbing()">
+        <span>🌐</span> Doblar
+      </button>
+
+      <div id="dubbing-progress" class="progress-card" hidden>
+        <div class="progress-spinner"></div>
+        <p id="dubbing-progress-text">Enviando a ElevenLabs...</p>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
+
+      <div id="dubbing-result" class="result-card" hidden>
+        <div class="result-header">
+          <h3>Doblaje listo ✓</h3>
+        </div>
+        <div class="avatar-img-wrap">
+          <audio id="dubbing-audio" controls hidden style="width:100%"></audio>
+          <video id="dubbing-video" controls hidden style="width:100%"></video>
+        </div>
+        <div class="result-footer">
+          <button class="btn" id="dubbing-use-btn" onclick="useDubbedAudio()" hidden>Usar en Video →</button>
+          <button class="btn btn-primary" onclick="downloadDubbing()">⬇ Descargar</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-10 -->
 
   </main>
 </div>
